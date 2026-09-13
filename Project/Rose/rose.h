@@ -62,13 +62,12 @@ bool ROSE_PollEvents(void);
 void ROSE_ClearScreen(ROSE_Color);
 void ROSE_DrawSprite(ROSE_Sprite*, size_t, size_t, double, ROSE_Color);
 void ROSE_DrawText(ROSE_Text*, size_t, size_t, double, ROSE_Color);
-void ROSE_PutPixel(ROSE_Color, size_t, size_t);
 void ROSE_SwapBuffers(void);
 
 SDL_GPUTexture* ROSE_INTERNAL_CreateDepthTexture(void);
-SDL_GPUTexture* ROSE_INTERNAL_CreateGPUTexture(size_t, size_t);
-void ROSE_INTERNAL_UploadImageToGPUTexture(uint8_t*, size_t, size_t, SDL_GPUTexture*);
-SDL_GPUBuffer* ROSE_INTERNAL_CreateGPUVertexBuffer(ROSE_Vertex*, size_t);
+SDL_GPUTexture* ROSE_INTERNAL_CreateRenderTexture(size_t, size_t);
+void ROSE_INTERNAL_UploadImageToRenderTexture(uint8_t*, size_t, size_t, SDL_GPUTexture*);
+SDL_GPUBuffer* ROSE_INTERNAL_CreateVertexBuffer(ROSE_Vertex*, size_t);
 
 #endif /* ROSE_HEADER_GUARD */
 

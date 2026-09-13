@@ -24,10 +24,6 @@ typedef struct ROSE_Text {
 
 static size_t screen_width = 0;
 static size_t screen_height = 0;
-uint8_t* pixel_image = NULL;
-SDL_GPUTexture* pixel_texture = NULL;
-SDL_GPUBuffer* pixel_buffer = NULL;
-
 static SDL_Window* window = NULL;
 static SDL_GPUDevice* device = NULL;
 static SDL_GPUSampler* sampler = NULL;
@@ -54,7 +50,7 @@ void ROSE_Init(const char* title, size_t w, size_t h, bool vkdebug) {
 	if (w < ROSE_MIN_WIDTH) {
 		w = ROSE_MIN_WIDTH;
 	} screen_width = w;
-
+	
 	if (h < ROSE_MIN_HEIGHT) {
 		h = ROSE_MIN_HEIGHT;
 	} screen_height = h;
@@ -274,35 +270,12 @@ void ROSE_Init(const char* title, size_t w, size_t h, bool vkdebug) {
 		exit(EXIT_FAILURE);
 	}
 
-	ascii_texture = ROSE_INTERNAL_CreateGPUTexture(ascii_w, ascii_h);
-	ROSE_INTERNAL_UploadImageToGPUTexture(ascii_image, ascii_w, ascii_h, ascii_texture);
+	ascii_texture = ROSE_INTERNAL_CreateRenderTexture(ascii_w, ascii_h);
+	ROSE_INTERNAL_UploadImageToRenderTexture(ascii_image, ascii_w, ascii_h, ascii_texture);
 	stbi_image_free(ascii_image);
-
-	size_t pixel_image_size = screen_width * screen_height * (size_t)4;
-	pixel_image = (uint8_t*)malloc(pixel_image_size);
-	if (!pixel_image) {
-		const char* message = "OOM!";
-		fprintf(stderr, "ROSE_Init() Failed: %s\n", message);
-		exit(EXIT_FAILURE);
-	} memset(pixel_image, (uint8_t)0, pixel_image_size);
-	pixel_texture = ROSE_INTERNAL_CreateGPUTexture(screen_width, screen_height);
-
-	ROSE_Vertex pixel_buffer_vertices[6] = {
-		{ { 0, 0 }, { 0, 1 } },
-		{ { 1, 0 }, { 1, 1 } },
-		{ { 1,-1 }, { 1, 0 } },
-		{ { 0, 0 }, { 0, 1 } },
-		{ { 1,-1 }, { 1, 0 } },
-		{ { 0,-1 }, { 0, 0 } },
-	};
-
-	pixel_buffer = ROSE_INTERNAL_CreateGPUVertexBuffer(pixel_buffer_vertices, sizeof(pixel_buffer_vertices));
 }
 
 void ROSE_Quit(void) {
-	free(pixel_image);
-	SDL_ReleaseGPUBuffer(device, pixel_buffer);
-	SDL_ReleaseGPUTexture(device, pixel_texture);
 	SDL_ReleaseGPUTexture(device, ascii_texture);
 	SDL_ReleaseGPUSampler(device, sampler);
 	SDL_ReleaseGPUTexture(device, depth_texture);
@@ -373,7 +346,7 @@ ROSE_Image* ROSE_CreateImage(size_t w, size_t h) {
 	image->w = (size_t)w;
 	image->h = (size_t)h;
 	size_t buffer_size = image->w * image->h * (size_t)4;
-	image->pixels = (uint8_t)malloc(buffer_size);
+	image->pixels = (uint8_t*)malloc(buffer_size);
 	if (!image->pixels) {
 		const char* message = "OOM!";
 		fprintf(stderr, "ROSE_LoadPNGImage() Failed: %s\n", message);
@@ -385,6 +358,12 @@ ROSE_Image* ROSE_CreateImage(size_t w, size_t h) {
 }
 
 ROSE_Color ROSE_GetImagePixel(ROSE_Image* image, size_t x, size_t y) {
+	if (!image) {
+		const char* message = "Image is NULL!";
+		fprintf(stderr, "ROSE_GetImagePixel() Failed: %s", message);
+		exit(EXIT_FAILURE);
+	}
+
 	bool bad_bounds = (x < (size_t)0) || (x >= image->w);
 	bad_bounds = bad_bounds || ((y < (size_t)0) || (y >= image->h));
 	if (bad_bounds) {
@@ -392,22 +371,28 @@ ROSE_Color ROSE_GetImagePixel(ROSE_Image* image, size_t x, size_t y) {
 		fprintf(stderr, "PutPixel() Failed: %s\n", message);
 		exit(EXIT_FAILURE);
 	}
-	
-	size_t index = (((image->h - y) * image->w) + x) * (size_t)4;
+
+	size_t index = ((((image->h - 1) - y) * image->w) + x) * (size_t)4;
 	uint8_t r = image->pixels[index + 0];
 	uint8_t g = image->pixels[index + 1];
 	uint8_t b = image->pixels[index + 2];
 	uint8_t a = image->pixels[index + 3];
-	
+
 	return (ROSE_Color) {
 		.r = ((float)r / 255.0f),
-		.g = ((float)g / 255.0f),
-		.b = ((float)b / 255.0f),
-		.a = ((float)a / 255.0f),
+			.g = ((float)g / 255.0f),
+			.b = ((float)b / 255.0f),
+			.a = ((float)a / 255.0f),
 	};
 }
 
 void ROSE_SetImagePixel(ROSE_Image* image, size_t x, size_t y, ROSE_Color color) {
+	if (!image) {
+		const char* message = "Image is NULL!";
+		fprintf(stderr, "ROSE_SetImagePixel() Failed: %s", message);
+		exit(EXIT_FAILURE);
+	}
+
 	bool bad_bounds = (x < (size_t)0) || (x >= image->w);
 	bad_bounds = bad_bounds || ((y < (size_t)0) || (y >= image->h));
 	if (bad_bounds) {
@@ -416,7 +401,7 @@ void ROSE_SetImagePixel(ROSE_Image* image, size_t x, size_t y, ROSE_Color color)
 		exit(EXIT_FAILURE);
 	}
 
-	size_t index = (((image->h - y) * image->w) + x) * (size_t)4;
+	size_t index = ((((image->h - 1) - y) * image->w) + x) * (size_t)4;
 	image->pixels[index + 0] = (uint8_t)(color.r * 255.0f);
 	image->pixels[index + 1] = (uint8_t)(color.g * 255.0f);
 	image->pixels[index + 2] = (uint8_t)(color.b * 255.0f);
@@ -424,11 +409,23 @@ void ROSE_SetImagePixel(ROSE_Image* image, size_t x, size_t y, ROSE_Color color)
 }
 
 void ROSE_ImageSize(ROSE_Image* image, size_t* w, size_t* h) {
+	if (!image) {
+		const char* message = "Image is NULL!";
+		fprintf(stderr, "ROSE_ImageSize() Failed: %s", message);
+		exit(EXIT_FAILURE);
+	}
+
 	*w = image->w;
 	*h = image->h;
 }
 
 void ROSE_DestroyImage(ROSE_Image* image) {
+	if (!image) {
+		const char* message = "Image is NULL!";
+		fprintf(stderr, "ROSE_DestroyImage() Failed: %s", message);
+		exit(EXIT_FAILURE);
+	}
+
 	free(image->pixels);
 	free(image);
 }
@@ -456,17 +453,44 @@ ROSE_Sprite* ROSE_CreateSprite(ROSE_Image* image) {
 		{ { 0,-1 }, { 0, 0 } },
 	};
 
-	sprite->buffer = ROSE_INTERNAL_CreateGPUVertexBuffer(vertices, sizeof(vertices) / sizeof(ROSE_Vertex));
-	sprite->texture = ROSE_INTERNAL_CreateGPUTexture(image->w, image->h);
-	ROSE_INTERNAL_UploadImageToGPUTexture(image->pixels, image->w, image->h, sprite->texture);
+	sprite->buffer = ROSE_INTERNAL_CreateVertexBuffer(vertices, sizeof(vertices) / sizeof(ROSE_Vertex));
+	sprite->texture = ROSE_INTERNAL_CreateRenderTexture(image->w, image->h);
+	ROSE_INTERNAL_UploadImageToRenderTexture(image->pixels, image->w, image->h, sprite->texture);
 	return sprite;
 }
 
 void ROSE_UploadSpriteTexture(ROSE_Sprite* sprite, ROSE_Image* image) {
+	if (!sprite) {
+		const char* message = "Sprite is NULL!";
+		fprintf(stderr, "ROSE_UploadSpriteTexture() Failed: %s", message);
+		exit(EXIT_FAILURE);
+	}
 
+	if (!image) {
+		const char* message = "Image is NULL!";
+		fprintf(stderr, "ROSE_UploadSpriteTexture() Failed: %s", message);
+		exit(EXIT_FAILURE);
+	}
+
+	if ((sprite->w == image->w) && (sprite->h == image->h)) {
+		ROSE_INTERNAL_UploadImageToRenderTexture(image->pixels, image->w, image->h, sprite->texture);
+		return;
+	}
+
+	sprite->w = image->w;
+	sprite->h = image->h;
+	SDL_ReleaseGPUTexture(device, sprite->texture);
+	sprite->texture = ROSE_INTERNAL_CreateRenderTexture(image->w, image->h);
+	ROSE_INTERNAL_UploadImageToRenderTexture(image->pixels, image->w, image->h, sprite->texture);
 }
 
 void ROSE_DestroySprite(ROSE_Sprite* sprite) {
+	if (!sprite) {
+		const char* message = "Sprite is NULL!";
+		fprintf(stderr, "ROSE_DestroySprite() Failed: %s", message);
+		exit(EXIT_FAILURE);
+	}
+
 	SDL_ReleaseGPUBuffer(device, sprite->buffer);
 	SDL_ReleaseGPUTexture(device, sprite->texture);
 	free(sprite);
@@ -519,13 +543,19 @@ ROSE_Text* ROSE_CreateText(const char* string) {
 
 	text->w = (size_t)7,
 	text->h = (size_t)11,
-	text->buffer = ROSE_INTERNAL_CreateGPUVertexBuffer(vertices, num_vertices),
+	text->buffer = ROSE_INTERNAL_CreateVertexBuffer(vertices, num_vertices),
 	text->num_vertices = num_vertices,
 	free(vertices);
 	return text;
 }
 
 void ROSE_DestroyText(ROSE_Text* text) {
+	if (!text) {
+		const char* message = "Text is NULL!";
+		fprintf(stderr, "ROSE_DestroyText() Failed: %s", message);
+		exit(EXIT_FAILURE);
+	}
+
 	SDL_ReleaseGPUBuffer(device, text->buffer);
 	free(text);
 }
@@ -612,22 +642,7 @@ void ROSE_ClearScreen(ROSE_Color color) {
 	if (reconstruct_textures) {
 		SDL_ReleaseGPUTexture(device, depth_texture);
 		depth_texture = ROSE_INTERNAL_CreateDepthTexture();
-		
-		SDL_ReleaseGPUTexture(device, pixel_texture);
-		pixel_texture = ROSE_INTERNAL_CreateGPUTexture(screen_width, screen_height);
-
-		free(pixel_image);
-		size_t pixel_image_size = screen_width * screen_height * (size_t)4;
-		pixel_image = (uint8_t*)malloc(pixel_image_size);
-		if (!pixel_image) {
-			const char* message = "OOM!";
-			fprintf(stderr, "ROSE_Init() Failed: %s\n", message);
-			exit(EXIT_FAILURE);
-		}
 	}
-
-	size_t pixel_image_size = screen_width * screen_height * (size_t)4;
-	memset(pixel_image, (uint8_t)0, pixel_image_size);
 
 	SDL_GPUColorTargetInfo color_target_info = {
 		.texture = swapchain_texture,
@@ -664,6 +679,12 @@ void ROSE_DrawSprite(ROSE_Sprite* sprite, size_t xpos, size_t ypos, double scale
 		fprintf(stderr, "DrawSprite() Failed: %s\n", message);
 		exit(EXIT_FAILURE);
 	} if (minimized) { return; }
+
+	if (!sprite) {
+		const char* message = "Sprite is NULL!";
+		fprintf(stderr, "ROSE_DrawSprite() Failed: %s", message);
+		exit(EXIT_FAILURE);
+	}
 
 	SDL_GPUBufferBinding buffer_binding = {
 		.buffer = sprite->buffer,
@@ -715,6 +736,12 @@ void ROSE_DrawText(ROSE_Text* text, size_t xpos, size_t ypos, double scale, ROSE
 		exit(EXIT_FAILURE);
 	} if (minimized) { return; }
 
+	if (!text) {
+		const char* message = "Text is NULL!";
+		fprintf(stderr, "ROSE_DrawText() Failed: %s", message);
+		exit(EXIT_FAILURE);
+	}
+
 	SDL_GPUBufferBinding buffer_binding = {
 		.buffer = text->buffer,
 	};
@@ -758,22 +785,6 @@ void ROSE_DrawText(ROSE_Text* text, size_t xpos, size_t ypos, double scale, ROSE
 	SDL_DrawGPUPrimitives(render_pass, text->num_vertices, 1, 0, 0);
 }
 
-void ROSE_PutPixel(ROSE_Color color, size_t x, size_t y) {
-	bool bad_bounds = (x < (size_t)0) || (x >= screen_width);
-	bad_bounds = bad_bounds || ((y < (size_t)0) || (y >= screen_height));
-	if (bad_bounds) {
-		const char* message = "Out of Bounds!";
-		fprintf(stderr, "PutPixel() Failed: %s\n", message);
-		exit(EXIT_FAILURE);
-	}
-
-	size_t index = (((screen_height - y - 1) * screen_width) + x) * 4;
-	pixel_image[index + 0] = (uint8_t)(color.r * 255.0f);
-	pixel_image[index + 1] = (uint8_t)(color.g * 255.0f);
-	pixel_image[index + 2] = (uint8_t)(color.b * 255.0f);
-	pixel_image[index + 3] = (uint8_t)(color.a * 255.0f);
-}
-
 void ROSE_SwapBuffers(void) {
 	if (!frame) {
 		const char* message = "Cannot SwapBuffers an Inactive Frame!";
@@ -781,50 +792,6 @@ void ROSE_SwapBuffers(void) {
 		exit(EXIT_FAILURE);
 	} frame = false;
 	if (minimized) { return; }
-
-	ROSE_INTERNAL_UploadImageToGPUTexture(pixel_image, screen_width, screen_height, pixel_texture);
-
-	SDL_GPUBufferBinding buffer_binding = {
-		.buffer = pixel_buffer,
-	};
-
-	SDL_GPUTextureSamplerBinding texture_binding = {
-		.texture = pixel_texture,
-		.sampler = sampler,
-	};
-
-	double scaled_width = (double)screen_width;
-	double scaled_height = (double)screen_height;
-
-	double w = (scaled_width / (double)screen_width) * 2.0;
-	double h = (scaled_height / (double)screen_height) * 2.0;
-	double x = -1.0 + (((double)0 / (double)screen_width) * 2.0);
-	double y = 1.0 - (((double)0 / (double)screen_height) * 2.0);
-
-	typedef struct Uniform {
-		float TransformMatrix[16];
-		float TintColor[4];
-	} Uniform;
-
-	Uniform uniform = {
-		.TransformMatrix = {
-			w, 0, 0, 0,
-			0, h, 0, 0,
-			0, 0, 1, 0,
-			x, y, 0, 1,
-		},
-		.TintColor = {
-			1.0f,
-			1.0f,
-			1.0f,
-			1.0f,
-		}
-	};
-
-	SDL_PushGPUVertexUniformData(command_buffer, 0, ((void*)&uniform), sizeof(uniform));
-	SDL_BindGPUVertexBuffers(render_pass, 0, &buffer_binding, 1);
-	SDL_BindGPUFragmentSamplers(render_pass, 0, &texture_binding, 1);
-	SDL_DrawGPUPrimitives(render_pass, 6, 1, 0, 0);
 
 	SDL_EndGPURenderPass(render_pass);
 	if (!SDL_SubmitGPUCommandBuffer(command_buffer)) {
@@ -856,7 +823,7 @@ SDL_GPUTexture* ROSE_INTERNAL_CreateDepthTexture(void) {
 	} return texture;
 }
 
-SDL_GPUTexture* ROSE_INTERNAL_CreateGPUTexture(size_t w, size_t h) {
+SDL_GPUTexture* ROSE_INTERNAL_CreateRenderTexture(size_t w, size_t h) {
 	SDL_GPUTextureCreateInfo texture_create_info = {
 		.type = SDL_GPU_TEXTURETYPE_2D,
 		.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM,
@@ -875,7 +842,7 @@ SDL_GPUTexture* ROSE_INTERNAL_CreateGPUTexture(size_t w, size_t h) {
 	} return texture;
 }
 
-void ROSE_INTERNAL_UploadImageToGPUTexture(uint8_t* image, size_t w, size_t h, SDL_GPUTexture* texture) {
+void ROSE_INTERNAL_UploadImageToRenderTexture(uint8_t* image, size_t w, size_t h, SDL_GPUTexture* texture) {
 	size_t image_size = w * h * (size_t)4;
 	SDL_GPUTransferBufferCreateInfo transfer_buffer_create_info = {
 		.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
@@ -933,7 +900,7 @@ void ROSE_INTERNAL_UploadImageToGPUTexture(uint8_t* image, size_t w, size_t h, S
 	SDL_ReleaseGPUTransferBuffer(device, transfer_buffer);
 }
 
-SDL_GPUBuffer* ROSE_INTERNAL_CreateGPUVertexBuffer(ROSE_Vertex* vertices, size_t num_vertices) {
+SDL_GPUBuffer* ROSE_INTERNAL_CreateVertexBuffer(ROSE_Vertex* vertices, size_t num_vertices) {
 	size_t buffer_size = num_vertices * sizeof(ROSE_Vertex);
 	SDL_GPUBufferCreateInfo buffer_create_info = {
 		.usage = SDL_GPU_BUFFERUSAGE_VERTEX,

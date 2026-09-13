@@ -18,7 +18,7 @@
     <ClCompile Include="main.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Rose\Source\rose.c">
+    <ClCompile Include="Rose\rose.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Libraries\stb-master\stb_image.c">
