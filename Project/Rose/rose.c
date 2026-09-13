@@ -679,6 +679,13 @@ void ROSE_ToggleVSync(bool vsync) {
 	} return;
 }
 
+void ROSE_SetMinScreenSize(size_t w, size_t h) {
+	if (!SDL_SetWindowMinimumSize(window, (int)w, (int)h)) {
+		SDL_Log("SDL_SetWindowMinimumSize() Failed: %s", SDL_GetError());
+		exit(EXIT_FAILURE);
+	}
+}
+
 void ROSE_GetScreenSize(size_t* w, size_t* h) {
 	if (!rose) {
 		const char* message = "ROSE has not been Initialized!";

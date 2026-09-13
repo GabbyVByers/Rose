@@ -40,6 +40,7 @@ ROSE_Text* ROSE_CreateText(const char*);
 void ROSE_DestroyText(ROSE_Text*);
 
 void ROSE_ToggleVSync(bool);
+void ROSE_SetMinScreenSize(size_t, size_t);
 void ROSE_GetScreenSize(size_t*, size_t*);
 bool ROSE_PollEvents(void);
 void ROSE_ClearScreen(ROSE_Color);

@@ -247,6 +247,7 @@ static void CHESS_RenderChessBoard(CHESS_ChessBoardState* chess_state) {
 
 int main(void) {
 	ROSE_Init("Chess Engine", 1200, 700, true);
+	ROSE_SetMinScreenSize(CHESS_BOARD_WIDTH, CHESS_BOARD_WIDTH);
 	ROSE_ToggleVSync(true);
 
 	CHESS_InitAssets();
