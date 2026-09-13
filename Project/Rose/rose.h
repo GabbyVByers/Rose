@@ -3,37 +3,19 @@
  *   Header File [rose.h]
  */
 
-#ifndef ROSE_HEADER_GUARD
-#define ROSE_HEADER_GUARD
+#ifndef ROSE_ROSE_HEADER_GUARD
+#define ROSE_ROSE_HEADER_GUARD
 
-#include "SDL3/SDL.h"
-#include "stb_image.h"
+#include "core.h"
 
-#include "stdio.h"
-#include "stdlib.h"
-#include "stdint.h"
-#include "stdbool.h"
-
-#define ROSE_MIN_WIDTH  ((size_t)32)
-#define ROSE_MIN_HEIGHT ((size_t)32)
-
-typedef struct {
+typedef struct ROSE_Vertex {
 	float pos[2];
 	float uv[2];
 } ROSE_Vertex;
 
-typedef struct {
+typedef struct ROSE_Color {
 	float r, g, b, a;
 } ROSE_Color;
-
-#define ROSE_COLOR_WHITE  ((ROSE_Color) { 1.0f, 1.0f, 1.0f, 1.0f })
-#define ROSE_COLOR_BLACK  ((ROSE_Color) { 0.0f, 0.0f, 0.0f, 1.0f })
-#define ROSE_COLOR_RED    ((ROSE_Color) { 1.0f, 0.0f, 0.0f, 1.0f })
-#define ROSE_COLOR_GREEN  ((ROSE_Color) { 0.0f, 1.0f, 0.0f, 1.0f })
-#define ROSE_COLOR_BLUE   ((ROSE_Color) { 0.0f, 0.0f, 1.0f, 1.0f })
-#define ROSE_COLOR_PURPLE ((ROSE_Color) { 1.0f, 0.0f, 1.0f, 1.0f })
-#define ROSE_COLOR_YELLOW ((ROSE_Color) { 1.0f, 1.0f, 0.0f, 1.0f })
-#define ROSE_COLOR_CYAN   ((ROSE_Color) { 0.0f, 1.0f, 1.0f, 1.0f })
 
 typedef struct ROSE_Image ROSE_Image;
 typedef struct ROSE_Sprite ROSE_Sprite;
@@ -57,17 +39,30 @@ ROSE_Text* ROSE_CreateText(const char*);
 void ROSE_DestroyText(ROSE_Text*);
 
 void ROSE_ToggleVSync(bool);
-void ROSE_ScreenSize(size_t*, size_t*);
+void ROSE_GetScreenSize(size_t*, size_t*);
 bool ROSE_PollEvents(void);
 void ROSE_ClearScreen(ROSE_Color);
 void ROSE_DrawSprite(ROSE_Sprite*, size_t, size_t, double, ROSE_Color);
 void ROSE_DrawText(ROSE_Text*, size_t, size_t, double, ROSE_Color);
 void ROSE_SwapBuffers(void);
 
+bool ROSE_HideMouseCursor(void);
+bool ROSE_RevealMouseCursor(void);
+bool ROSE_PressingMouseButton(ROSE_MOUSE_BUTTON);
+bool ROSE_PressedMouseButton(ROSE_MOUSE_BUTTON);
+bool ROSE_ReleasedMouseButton(ROSE_MOUSE_BUTTON);
+void ROSE_GetMousePosition(float*, float*);
+void ROSE_GetMouseVelocity(float*, float*);
+float ROSE_GetMouseScroll(void);
+
+bool ROSE_PressingKeyboardButton(ROSE_KEYBOARD_BUTTON);
+bool ROSE_PressedKeyboardButton(ROSE_KEYBOARD_BUTTON);
+bool ROSE_ReleasedKeyboardButton(ROSE_KEYBOARD_BUTTON);
+
 SDL_GPUTexture* ROSE_INTERNAL_CreateDepthTexture(void);
 SDL_GPUTexture* ROSE_INTERNAL_CreateRenderTexture(size_t, size_t);
 void ROSE_INTERNAL_UploadImageToRenderTexture(uint8_t*, size_t, size_t, SDL_GPUTexture*);
 SDL_GPUBuffer* ROSE_INTERNAL_CreateVertexBuffer(ROSE_Vertex*, size_t);
 
-#endif /* ROSE_HEADER_GUARD */
+#endif /* ROSE_ROSE_HEADER_GUARD */
 

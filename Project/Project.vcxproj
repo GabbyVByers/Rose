@@ -243,6 +243,7 @@
     <ClInclude Include="Libraries\SDL3-3.4.16\include\SDL3\SDL_video.h" />
     <ClInclude Include="Libraries\SDL3-3.4.16\include\SDL3\SDL_vulkan.h" />
     <ClInclude Include="Libraries\stb-master\stb_image.h" />
+    <ClInclude Include="Rose\core.h" />
     <ClInclude Include="Rose\rose.h" />
   </ItemGroup>
   <ItemGroup>

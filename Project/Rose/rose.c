@@ -22,6 +22,7 @@ typedef struct ROSE_Text {
 	SDL_GPUBuffer* buffer;
 } ROSE_Text;
 
+static bool rose = false; // todo: guard rose init
 static size_t screen_width = 0;
 static size_t screen_height = 0;
 static SDL_Window* window = NULL;
@@ -37,11 +38,30 @@ static SDL_GPURenderPass* render_pass = NULL;
 static SDL_GPUTexture* swapchain_texture = NULL;
 static SDL_GPUCommandBuffer* command_buffer = NULL;
 
+static float mouse_px = 0.0f;
+static float mouse_py = 0.0f;
+static float mouse_vx = 0.0f;
+static float mouse_vy = 0.0f;
+static float saved_mouse_px = 0.0f;
+static float saved_mouse_py = 0.0f;
+static int curr_mouse_state = 0;
+static int prev_mouse_state = 0;
+static float mouse_scroll = 0.0f;
+
+static bool curr_keyboard_state[SDL_SCANCODE_COUNT] = { 0 };
+static bool prev_keyboard_state[SDL_SCANCODE_COUNT] = { 0 };
+
 /*
  *   INIT / QUIT
  */
 
 void ROSE_Init(const char* title, size_t w, size_t h, bool vkdebug) {
+	if (rose) {
+		const char* message = "ROSE has Already been Initialized!";
+		fprintf(stderr, "ROSE_Init() Failed: %s", message);
+		exit(EXIT_FAILURE);
+	} rose = true;
+
 	if (!SDL_Init(SDL_INIT_VIDEO)) {
 		fprintf(stderr, "SDL_Init() Failed: %s", SDL_GetError());
 		exit(EXIT_FAILURE);
@@ -276,6 +296,12 @@ void ROSE_Init(const char* title, size_t w, size_t h, bool vkdebug) {
 }
 
 void ROSE_Quit(void) {
+	if (!rose) {
+		const char* message = "ROSE has not been Initialized!";
+		fprintf(stderr, "ROSE_Quit() Failed: %s", message);
+		exit(EXIT_FAILURE);
+	} rose = true;
+
 	SDL_ReleaseGPUTexture(device, ascii_texture);
 	SDL_ReleaseGPUSampler(device, sampler);
 	SDL_ReleaseGPUTexture(device, depth_texture);
@@ -298,6 +324,18 @@ void ROSE_Quit(void) {
 	render_pass = NULL;
 	swapchain_texture = NULL;
 	command_buffer = NULL;
+
+	mouse_px = 0.0f;
+	mouse_py = 0.0f;
+	mouse_vx = 0.0f;
+	mouse_vy = 0.0f;
+	saved_mouse_px = 0.0f;
+	saved_mouse_py = 0.0f;
+	curr_mouse_state = 0;
+	prev_mouse_state = 0;
+
+	memset(curr_keyboard_state, false, sizeof(bool) * SDL_SCANCODE_COUNT);
+	memset(prev_keyboard_state, false, sizeof(bool) * SDL_SCANCODE_COUNT);
 }
 
 /*
@@ -380,9 +418,9 @@ ROSE_Color ROSE_GetImagePixel(ROSE_Image* image, size_t x, size_t y) {
 
 	return (ROSE_Color) {
 		.r = ((float)r / 255.0f),
-			.g = ((float)g / 255.0f),
-			.b = ((float)b / 255.0f),
-			.a = ((float)a / 255.0f),
+		.g = ((float)g / 255.0f),
+		.b = ((float)b / 255.0f),
+		.a = ((float)a / 255.0f),
 	};
 }
 
@@ -435,6 +473,12 @@ void ROSE_DestroyImage(ROSE_Image* image) {
  */
 
 ROSE_Sprite* ROSE_CreateSprite(ROSE_Image* image) {
+	if (!rose) {
+		const char* message = "ROSE has not been Initialized!";
+		fprintf(stderr, "ROSE_CreateSprite() Failed: %s", message);
+		exit(EXIT_FAILURE);
+	}
+
 	ROSE_Sprite* sprite = (ROSE_Sprite*)malloc(sizeof(ROSE_Sprite));
 	if (!sprite) {
 		const char* message = "OOM!";
@@ -460,6 +504,12 @@ ROSE_Sprite* ROSE_CreateSprite(ROSE_Image* image) {
 }
 
 void ROSE_UploadSpriteTexture(ROSE_Sprite* sprite, ROSE_Image* image) {
+	if (!rose) {
+		const char* message = "ROSE has not been Initialized!";
+		fprintf(stderr, "ROSE_UploadSpriteTexture() Failed: %s", message);
+		exit(EXIT_FAILURE);
+	}
+
 	if (!sprite) {
 		const char* message = "Sprite is NULL!";
 		fprintf(stderr, "ROSE_UploadSpriteTexture() Failed: %s", message);
@@ -485,6 +535,12 @@ void ROSE_UploadSpriteTexture(ROSE_Sprite* sprite, ROSE_Image* image) {
 }
 
 void ROSE_DestroySprite(ROSE_Sprite* sprite) {
+	if (!rose) {
+		const char* message = "ROSE has not been Initialized!";
+		fprintf(stderr, "ROSE_DestroySprite() Failed: %s", message);
+		exit(EXIT_FAILURE);
+	}
+
 	if (!sprite) {
 		const char* message = "Sprite is NULL!";
 		fprintf(stderr, "ROSE_DestroySprite() Failed: %s", message);
@@ -501,6 +557,12 @@ void ROSE_DestroySprite(ROSE_Sprite* sprite) {
  */
 
 ROSE_Text* ROSE_CreateText(const char* string) {
+	if (!rose) {
+		const char* message = "ROSE has not been Initialized!";
+		fprintf(stderr, "ROSE_CreateText() Failed: %s", message);
+		exit(EXIT_FAILURE);
+	}
+
 	ROSE_Text* text = (ROSE_Text*)malloc(sizeof(ROSE_Text));
 	if (!text) {
 		const char* message = "OOM!";
@@ -550,6 +612,12 @@ ROSE_Text* ROSE_CreateText(const char* string) {
 }
 
 void ROSE_DestroyText(ROSE_Text* text) {
+	if (!rose) {
+		const char* message = "ROSE has not been Initialized!";
+		fprintf(stderr, "ROSE_DestroyText() Failed: %s", message);
+		exit(EXIT_FAILURE);
+	}
+
 	if (!text) {
 		const char* message = "Text is NULL!";
 		fprintf(stderr, "ROSE_DestroyText() Failed: %s", message);
@@ -565,6 +633,12 @@ void ROSE_DestroyText(ROSE_Text* text) {
  */
 
 void ROSE_ToggleVSync(bool vsync) {
+	if (!rose) {
+		const char* message = "ROSE has not been Initialized!";
+		fprintf(stderr, "ROSE_ToggleVSync() Failed: %s", message);
+		exit(EXIT_FAILURE);
+	}
+
 	if (vsync) {
 		if (!SDL_SetGPUSwapchainParameters(device, window, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, SDL_GPU_PRESENTMODE_VSYNC)) {
 			fprintf(stderr, "SDL_SetGPUSwapchainParameters() Failed: %s\n", SDL_GetError());
@@ -594,19 +668,56 @@ void ROSE_ToggleVSync(bool vsync) {
 	} return;
 }
 
-void ROSE_ScreenSize(size_t* w, size_t* h) {
+void ROSE_GetScreenSize(size_t* w, size_t* h) {
+	if (!rose) {
+		const char* message = "ROSE has not been Initialized!";
+		fprintf(stderr, "ROSE_GetScreenSize() Failed: %s", message);
+		exit(EXIT_FAILURE);
+	}
+
 	*w = screen_width;
 	*h = screen_height;
 }
 
 bool ROSE_PollEvents(void) {
+	if (!rose) {
+		const char* message = "ROSE has not been Initialized!";
+		fprintf(stderr, "ROSE_PollEvents() Failed: %s", message);
+		exit(EXIT_FAILURE);
+	}
+
+	mouse_scroll = 0.0f;
+	mouse_vx = 0.0f;
+	mouse_vy = 0.0f;
+	
 	SDL_Event event;
 	while (SDL_PollEvent(&event)) {
-		if (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED) { return false; }
-	} return true;
+		if (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED) {
+			return false;
+		}
+		if (event.type == SDL_EVENT_MOUSE_WHEEL) {
+			mouse_scroll += event.wheel.y;
+		}
+		if (event.type == SDL_EVENT_MOUSE_MOTION) {
+			mouse_vx += event.motion.xrel;
+			mouse_vy += event.motion.yrel;
+		}
+	}
+	
+	memcpy(prev_keyboard_state, curr_keyboard_state, sizeof(bool) * SDL_SCANCODE_COUNT);
+	memcpy(curr_keyboard_state, SDL_GetKeyboardState(NULL), sizeof(bool) * SDL_SCANCODE_COUNT);
+	prev_mouse_state = curr_mouse_state;
+	curr_mouse_state = SDL_GetMouseState(&mouse_px, &mouse_py);
+	return true;
 }
 
 void ROSE_ClearScreen(ROSE_Color color) {
+	if (!rose) {
+		const char* message = "ROSE has not been Initialized!";
+		fprintf(stderr, "ROSE_ClearScreen() Failed: %s", message);
+		exit(EXIT_FAILURE);
+	}
+
 	if (frame) {
 		const char* message = "Current Frame is Already Active!";
 		fprintf(stderr, "ClearScreen() Failed: %s\n", message);
@@ -674,6 +785,12 @@ void ROSE_ClearScreen(ROSE_Color color) {
 }
 
 void ROSE_DrawSprite(ROSE_Sprite* sprite, size_t xpos, size_t ypos, double scale, ROSE_Color color) {
+	if (!rose) {
+		const char* message = "ROSE has not been Initialized!";
+		fprintf(stderr, "ROSE_DrawSprite() Failed: %s", message);
+		exit(EXIT_FAILURE);
+	}
+
 	if (!frame) {
 		const char* message = "Cannot Draw on an Inactive Frame!";
 		fprintf(stderr, "DrawSprite() Failed: %s\n", message);
@@ -730,6 +847,12 @@ void ROSE_DrawSprite(ROSE_Sprite* sprite, size_t xpos, size_t ypos, double scale
 }
 
 void ROSE_DrawText(ROSE_Text* text, size_t xpos, size_t ypos, double scale, ROSE_Color color) {
+	if (!rose) {
+		const char* message = "ROSE has not been Initialized!";
+		fprintf(stderr, "ROSE_DrawText() Failed: %s", message);
+		exit(EXIT_FAILURE);
+	}
+
 	if (!frame) {
 		const char* message = "Cannot Draw on an Inactive Frame!";
 		fprintf(stderr, "DrawTextBox() Failed: %s\n", message);
@@ -786,6 +909,12 @@ void ROSE_DrawText(ROSE_Text* text, size_t xpos, size_t ypos, double scale, ROSE
 }
 
 void ROSE_SwapBuffers(void) {
+	if (!rose) {
+		const char* message = "ROSE has not been Initialized!";
+		fprintf(stderr, "ROSE_SwapBuffers() Failed: %s", message);
+		exit(EXIT_FAILURE);
+	}
+
 	if (!frame) {
 		const char* message = "Cannot SwapBuffers an Inactive Frame!";
 		fprintf(stderr, "SwapBuffers() Failed: %s\n", message);
@@ -801,10 +930,145 @@ void ROSE_SwapBuffers(void) {
 }
 
 /*
+ *   MOUSE
+ */
+
+bool ROSE_HideMouseCursor(void) {
+	if (!rose) {
+		const char* message = "ROSE has not been Initialized!";
+		fprintf(stderr, "ROSE_HideMouseCursor() Failed: %s", message);
+		exit(EXIT_FAILURE);
+	}
+
+	saved_mouse_px = mouse_px;
+	saved_mouse_py = mouse_py;
+	SDL_SetWindowRelativeMouseMode(window, true);
+}
+
+bool ROSE_RevealMouseCursor(void) {
+	if (!rose) {
+		const char* message = "ROSE has not been Initialized!";
+		fprintf(stderr, "ROSE_RevealMouseCursor() Failed: %s", message);
+		exit(EXIT_FAILURE);
+	}
+
+	mouse_px = saved_mouse_px;
+	mouse_py = saved_mouse_py;
+	SDL_WarpMouseInWindow(window, mouse_px, mouse_py);
+	SDL_SetWindowRelativeMouseMode(window, false);
+}
+
+bool ROSE_PressingMouseButton(ROSE_MOUSE_BUTTON button) {
+	if (!rose) {
+		const char* message = "ROSE has not been Initialized!";
+		fprintf(stderr, "ROSE_PressingMouseButton() Failed: %s", message);
+		exit(EXIT_FAILURE);
+	} return (curr_mouse_state & SDL_BUTTON_MASK(button)) != 0;
+}
+
+bool ROSE_PressedMouseButton(ROSE_MOUSE_BUTTON button) {
+	if (!rose) {
+		const char* message = "ROSE has not been Initialized!";
+		fprintf(stderr, "ROSE_PressedMouseButton() Failed: %s", message);
+		exit(EXIT_FAILURE);
+	} return ((prev_mouse_state & SDL_BUTTON_MASK(button)) == 0) && ((curr_mouse_state & SDL_BUTTON_MASK(button)) != 0);
+}
+
+bool ROSE_ReleasedMouseButton(ROSE_MOUSE_BUTTON button) {
+	if (!rose) {
+		const char* message = "ROSE has not been Initialized!";
+		fprintf(stderr, "ROSE_ReleasedMouseButton() Failed: %s", message);
+		exit(EXIT_FAILURE);
+	} return ((prev_mouse_state & SDL_BUTTON_MASK(button)) != 0) && ((curr_mouse_state & SDL_BUTTON_MASK(button)) == 0);
+}
+
+void ROSE_GetMousePosition(float* px, float* py) {
+	if (!rose) {
+		const char* message = "ROSE has not been Initialized!";
+		fprintf(stderr, "ROSE_GetMousePosition() Failed: %s", message);
+		exit(EXIT_FAILURE);
+	}
+
+	*px = mouse_px;
+	*py = mouse_py;
+}
+
+void ROSE_GetMouseVelocity(float* vx, float* vy) {
+	if (!rose) {
+		const char* message = "ROSE has not been Initialized!";
+		fprintf(stderr, "ROSE_GetMouseVelocity() Failed: %s", message);
+		exit(EXIT_FAILURE);
+	}
+
+	*vx = mouse_vx;
+	*vy = mouse_vy;
+}
+
+float ROSE_GetMouseScroll(void) {
+	if (!rose) {
+		const char* message = "ROSE has not been Initialized!";
+		fprintf(stderr, "ROSE_GetMouseScroll() Failed: %s", message);
+		exit(EXIT_FAILURE);
+	} return mouse_scroll;
+}
+
+/*
+ *   KEYBOARD
+ */
+
+bool ROSE_PressingKeyboardButton(ROSE_KEYBOARD_BUTTON button) {
+	if (!rose) {
+		const char* message = "ROSE has not been Initialized!";
+		fprintf(stderr, "ROSE_PressingKeyboardButton() Failed: %s", message);
+		exit(EXIT_FAILURE);
+	}
+
+	if (button >= SDL_SCANCODE_COUNT) {
+		const char* message = "Invalid Keyboard Button!";
+		fprintf(stderr, "ROSE_PressingKeyboardButton() Failed: %s", message);
+		exit(EXIT_FAILURE);
+	} return curr_keyboard_state[button];
+}
+
+bool ROSE_PressedKeyboardButton(ROSE_KEYBOARD_BUTTON button) {
+	if (!rose) {
+		const char* message = "ROSE has not been Initialized!";
+		fprintf(stderr, "ROSE_PressedKeyboardButton() Failed: %s", message);
+		exit(EXIT_FAILURE);
+	}
+	
+	if (button >= SDL_SCANCODE_COUNT) {
+		const char* message = "Invalid Keyboard Button!";
+		fprintf(stderr, "ROSE_PressedKeyboardButton() Failed: %s", message);
+		exit(EXIT_FAILURE);
+	} return (!prev_keyboard_state[button]) && (curr_keyboard_state[button]);
+}
+
+bool ROSE_ReleasedKeyboardButton(ROSE_KEYBOARD_BUTTON button) {
+	if (!rose) {
+		const char* message = "ROSE has not been Initialized!";
+		fprintf(stderr, "ROSE_ReleasedKeyboardButton() Failed: %s", message);
+		exit(EXIT_FAILURE);
+	}
+	
+	if (button >= SDL_SCANCODE_COUNT) {
+		const char* message = "Invalid Keyboard Button!";
+		fprintf(stderr, "ROSE_ReleasedKeyboardButton() Failed: %s", message);
+		exit(EXIT_FAILURE);
+	} return (prev_keyboard_state[button]) && (!curr_keyboard_state[button]);
+}
+
+/*
  *   INTERNAL UTILITIES
  */
 
 SDL_GPUTexture* ROSE_INTERNAL_CreateDepthTexture(void) {
+	if (!rose) {
+		const char* message = "ROSE has not been Initialized!";
+		fprintf(stderr, "ROSE_INTERNAL_CreateDepthTexture() Failed: %s", message);
+		exit(EXIT_FAILURE);
+	}
+
 	SDL_GPUTextureCreateInfo depth_texture_create_info = {
 		.type = SDL_GPU_TEXTURETYPE_2D,
 		.format = SDL_GPU_TEXTUREFORMAT_D16_UNORM,
@@ -843,6 +1107,12 @@ SDL_GPUTexture* ROSE_INTERNAL_CreateRenderTexture(size_t w, size_t h) {
 }
 
 void ROSE_INTERNAL_UploadImageToRenderTexture(uint8_t* image, size_t w, size_t h, SDL_GPUTexture* texture) {
+	if (!rose) {
+		const char* message = "ROSE has not been Initialized!";
+		fprintf(stderr, "ROSE_INTERNAL_UploadImageToRenderTexture() Failed: %s", message);
+		exit(EXIT_FAILURE);
+	}
+
 	size_t image_size = w * h * (size_t)4;
 	SDL_GPUTransferBufferCreateInfo transfer_buffer_create_info = {
 		.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
@@ -901,6 +1171,12 @@ void ROSE_INTERNAL_UploadImageToRenderTexture(uint8_t* image, size_t w, size_t h
 }
 
 SDL_GPUBuffer* ROSE_INTERNAL_CreateVertexBuffer(ROSE_Vertex* vertices, size_t num_vertices) {
+	if (!rose) {
+		const char* message = "ROSE has not been Initialized!";
+		fprintf(stderr, "ROSE_INTERNAL_CreateVertexBuffer() Failed: %s", message);
+		exit(EXIT_FAILURE);
+	}
+
 	size_t buffer_size = num_vertices * sizeof(ROSE_Vertex);
 	SDL_GPUBufferCreateInfo buffer_create_info = {
 		.usage = SDL_GPU_BUFFERUSAGE_VERTEX,
