@@ -216,40 +216,81 @@ static intmax* CHESS_EnumerateLegalMoves(CHESS_ChessBoardState* state) {
 	for (intmax start_square = 0; start_square < 64; start_square++) {
 		intmax num_moves = 0;
 		intmax* moves = &legal_moves[start_square * 64];
-		uint8_t element = state->grid[start_square];
-		if (element == CHESS_NULL_PIECE) { continue; }
-		uint8_t type = element & CHESS_TYPE_MASK;
-		bool rooky = (type == CHESS_ROOK) || (type == CHESS_QUEEN);
-		bool bishopy = (type == CHESS_BISHOP) || (type == CHESS_QUEEN);
+		uint8_t this_piece = state->grid[start_square];
+		if (this_piece == CHESS_NULL_PIECE) { continue; }
+		uint8_t this_type = this_piece & CHESS_TYPE_MASK;
+		bool rooky = (this_type == CHESS_ROOK) || (this_type == CHESS_QUEEN);
+		bool bishopy = (this_type == CHESS_BISHOP) || (this_type == CHESS_QUEEN);
 		intmax start_i = start_square % 8;
 		intmax start_j = start_square / 8;
 		if (rooky) {
 			if (start_i < 7) {
 				for (intmax end_i = start_i + 1; end_i < 8; end_i++) {
 					intmax end_square = (start_j * 8) + end_i;
-					moves[num_moves] = end_square;
-					num_moves++;
+					uint8_t other_piece = state->grid[end_square];
+					if (other_piece == CHESS_NULL_PIECE) {
+						moves[num_moves] = end_square;
+						num_moves++;
+						continue;
+					}
+					if ((other_piece & CHESS_PLAYER_MASK) != (this_piece & CHESS_PLAYER_MASK)) {
+						moves[num_moves] = end_square;
+						num_moves++;
+						break;
+					}
+					else { break; }
+					
 				}
 			}
 			if (start_i > 0) {
 				for (intmax end_i = start_i - 1; end_i >= 0; end_i--) {
 					intmax end_square = (start_j * 8) + end_i;
-					moves[num_moves] = end_square;
-					num_moves++;
+					uint8_t other_piece = state->grid[end_square];
+					if (other_piece == CHESS_NULL_PIECE) {
+						moves[num_moves] = end_square;
+						num_moves++;
+						continue;
+					}
+					if ((other_piece & CHESS_PLAYER_MASK) != (this_piece & CHESS_PLAYER_MASK)) {
+						moves[num_moves] = end_square;
+						num_moves++;
+						break;
+					}
+					else { break; }
 				}
 			}
 			if (start_j > 0) {
 				for (intmax end_j = start_j - 1; end_j >= 0; end_j--) {
 					intmax end_square = start_i + (end_j * 8);
-					moves[num_moves] = end_square;
-					num_moves++;
+					uint8_t other_piece = state->grid[end_square];
+					if (other_piece == CHESS_NULL_PIECE) {
+						moves[num_moves] = end_square;
+						num_moves++;
+						continue;
+					}
+					if ((other_piece & CHESS_PLAYER_MASK) != (this_piece & CHESS_PLAYER_MASK)) {
+						moves[num_moves] = end_square;
+						num_moves++;
+						break;
+					}
+					else { break; }
 				}
 			}
 			if (start_j < 8) {
 				for (intmax end_j = start_j + 1; end_j < 8; end_j++) {
 					intmax end_square = start_i + (end_j * 8);
-					moves[num_moves] = end_square;
-					num_moves++;
+					uint8_t other_piece = state->grid[end_square];
+					if (other_piece == CHESS_NULL_PIECE) {
+						moves[num_moves] = end_square;
+						num_moves++;
+						continue;
+					}
+					if ((other_piece & CHESS_PLAYER_MASK) != (this_piece & CHESS_PLAYER_MASK)) {
+						moves[num_moves] = end_square;
+						num_moves++;
+						break;
+					}
+					else { break; }
 				}
 			}
 		}
@@ -259,12 +300,22 @@ static intmax* CHESS_EnumerateLegalMoves(CHESS_ChessBoardState* state) {
 				intmax end_j = start_j + 1;
 				for (;;) {
 					intmax end_square = end_i + (end_j * 8);
-					moves[num_moves] = end_square;
-					num_moves++;
+					uint8_t other_piece = state->grid[end_square];
 					end_i += 1;
 					end_j += 1;
-					if (end_i == 8) { break; }
-					if (end_j == 8) { break; }
+					if (other_piece == CHESS_NULL_PIECE) {
+						moves[num_moves] = end_square;
+						num_moves++;
+						if (end_i == 8) { break; }
+						if (end_j == 8) { break; }
+						continue;
+					}
+					else if ((other_piece & CHESS_PLAYER_MASK) != (this_piece & CHESS_PLAYER_MASK)) {
+						moves[num_moves] = end_square;
+						num_moves++;
+						break;
+					}
+					else { break; }
 				}
 			}
 			if ((start_i > 0) && (start_j > 0)) {
@@ -272,27 +323,45 @@ static intmax* CHESS_EnumerateLegalMoves(CHESS_ChessBoardState* state) {
 				intmax end_j = start_j - 1;
 				for (;;) {
 					intmax end_square = end_i + (end_j * 8);
-					moves[num_moves] = end_square;
-					num_moves++;
+					uint8_t other_piece = state->grid[end_square];
 					end_i -= 1;
 					end_j -= 1;
-					if (end_i == -1) { break; }
-					if (end_j == -1) { break; }
+					if (other_piece == CHESS_NULL_PIECE) {
+						moves[num_moves] = end_square;
+						num_moves++;
+						if (end_i == -1) { break; }
+						if (end_j == -1) { break; }
+						continue;
+					}
+					else if ((other_piece & CHESS_PLAYER_MASK) != (this_piece & CHESS_PLAYER_MASK)) {
+						moves[num_moves] = end_square;
+						num_moves++;
+						break;
+					}
+					else { break; }
 				}
 			}
-
-
 			if ((start_i < 7) && (start_j > 0)) {
 				intmax end_i = start_i + 1;
 				intmax end_j = start_j - 1;
 				for (;;) {
 					intmax end_square = end_i + (end_j * 8);
-					moves[num_moves] = end_square;
-					num_moves++;
+					uint8_t other_piece = state->grid[end_square];
 					end_i += 1;
 					end_j -= 1;
-					if (end_i == 8) { break; }
-					if (end_j == -1) { break; }
+					if (other_piece == CHESS_NULL_PIECE) {
+						moves[num_moves] = end_square;
+						num_moves++;
+						if (end_i == 8) { break; }
+						if (end_j == -1) { break; }
+						continue;
+					}
+					else if ((other_piece & CHESS_PLAYER_MASK) != (this_piece & CHESS_PLAYER_MASK)) {
+						moves[num_moves] = end_square;
+						num_moves++;
+						break;
+					}
+					else { break; }
 				}
 			}
 			if ((start_i > 0) && (start_j < 7)) {
@@ -300,12 +369,22 @@ static intmax* CHESS_EnumerateLegalMoves(CHESS_ChessBoardState* state) {
 				intmax end_j = start_j + 1;
 				for (;;) {
 					intmax end_square = end_i + (end_j * 8);
-					moves[num_moves] = end_square;
-					num_moves++;
+					uint8_t other_piece = state->grid[end_square];
 					end_i -= 1;
 					end_j += 1;
-					if (end_i == -1) { break; }
-					if (end_j == 8) { break; }
+					if (other_piece == CHESS_NULL_PIECE) {
+						moves[num_moves] = end_square;
+						num_moves++;
+						if (end_i == -1) { break; }
+						if (end_j == 8) { break; }
+						continue;
+					}
+					else if ((other_piece & CHESS_PLAYER_MASK) != (this_piece & CHESS_PLAYER_MASK)) {
+						moves[num_moves] = end_square;
+						num_moves++;
+						break;
+					}
+					else { break; }
 				}
 			}
 		}
