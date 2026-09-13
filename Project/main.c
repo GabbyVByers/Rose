@@ -5,24 +5,36 @@
 
 #include "rose.h"
 
-#define CHESS_BOARD_WIDTH  480
-#define CHESS_SQUARE_WIDTH 60
+#define CHESS_BOARD_WIDTH  ((intmax)480)
+#define CHESS_SQUARE_WIDTH ((intmax)60)
 
-#define CHESS_NULL_PIECE   0b0000000000000000
+#define CHESS_NULL_PIECE   0b00000000
 
-#define CHESS_WHITE_KING   0b0000000000000001
-#define CHESS_WHITE_QUEEN  0b0000000000000010
-#define CHESS_WHITE_ROOK   0b0000000000000011
-#define CHESS_WHITE_HORSE  0b0000000000000100
-#define CHESS_WHITE_BISHOP 0b0000000000000101
-#define CHESS_WHITE_PAWN   0b0000000000000110
+#define CHESS_KING         0b00000001
+#define CHESS_QUEEN        0b00000010
+#define CHESS_ROOK         0b00000011
+#define CHESS_HORSE        0b00000100
+#define CHESS_BISHOP       0b00000101
+#define CHESS_PAWN         0b00000110
 
-#define CHESS_BLACK_KING   0b0000000000001001
-#define CHESS_BLACK_QUEEN  0b0000000000001010
-#define CHESS_BLACK_ROOK   0b0000000000001011
-#define CHESS_BLACK_HORSE  0b0000000000001100
-#define CHESS_BLACK_BISHOP 0b0000000000001101
-#define CHESS_BLACK_PAWN   0b0000000000001110
+#define CHESS_WHITE_KING   0b00000001
+#define CHESS_WHITE_QUEEN  0b00000010
+#define CHESS_WHITE_ROOK   0b00000011
+#define CHESS_WHITE_HORSE  0b00000100
+#define CHESS_WHITE_BISHOP 0b00000101
+#define CHESS_WHITE_PAWN   0b00000110
+
+#define CHESS_BLACK_KING   0b00001001
+#define CHESS_BLACK_QUEEN  0b00001010
+#define CHESS_BLACK_ROOK   0b00001011
+#define CHESS_BLACK_HORSE  0b00001100
+#define CHESS_BLACK_BISHOP 0b00001101
+#define CHESS_BLACK_PAWN   0b00001110
+
+#define CHESS_SPRITE_MASK  0b00001111
+#define CHESS_TYPE_MASK    0b00000111
+#define CHESS_PLAYER_MASK  0b00001000
+#define CHESS_MOVED_MASK   0b00010000
 
 ROSE_Image* board_image = NULL;
 ROSE_Image* highlight_image = NULL;
@@ -116,80 +128,84 @@ typedef enum CHESS_Player {
 } CHESS_Player;
 
 typedef struct CHESS_ChessBoardState {
-	uint16_t grid[64];
+	uint8_t grid[64];
 	CHESS_Player turn;
 } CHESS_ChessBoardState;
 
 static CHESS_ChessBoardState CHESS_InitChessBoard(void) {
-	CHESS_ChessBoardState chess_state = { 0 };
-	chess_state.turn = CHESS_WHITE;
+	CHESS_ChessBoardState state = { 0 };
+	state.turn = CHESS_WHITE;
 
 	for (intmax index = 0; index < 64; index++) {
-		chess_state.grid[index] = CHESS_NULL_PIECE;
+		state.grid[index] = CHESS_NULL_PIECE;
 	}
 
-	chess_state.grid[0]  = CHESS_BLACK_ROOK;
-	chess_state.grid[1]  = CHESS_BLACK_HORSE;
-	chess_state.grid[2]  = CHESS_BLACK_BISHOP;
-	chess_state.grid[3]  = CHESS_BLACK_QUEEN;
-	chess_state.grid[4]  = CHESS_BLACK_KING;
-	chess_state.grid[5]  = CHESS_BLACK_BISHOP;
-	chess_state.grid[6]  = CHESS_BLACK_HORSE;
-	chess_state.grid[7]  = CHESS_BLACK_ROOK;
+	state.grid[0]  = CHESS_BLACK_ROOK;
+	state.grid[1]  = CHESS_BLACK_HORSE;
+	state.grid[2]  = CHESS_BLACK_BISHOP;
+	state.grid[3]  = CHESS_BLACK_QUEEN;
+	state.grid[4]  = CHESS_BLACK_KING;
+	state.grid[5]  = CHESS_BLACK_BISHOP;
+	state.grid[6]  = CHESS_BLACK_HORSE;
+	state.grid[7]  = CHESS_BLACK_ROOK;
 
-	chess_state.grid[8]  = CHESS_BLACK_PAWN;
-	chess_state.grid[9]  = CHESS_BLACK_PAWN;
-	chess_state.grid[10] = CHESS_BLACK_PAWN;
-	chess_state.grid[11] = CHESS_BLACK_PAWN;
-	chess_state.grid[12] = CHESS_BLACK_PAWN;
-	chess_state.grid[13] = CHESS_BLACK_PAWN;
-	chess_state.grid[14] = CHESS_BLACK_PAWN;
-	chess_state.grid[15] = CHESS_BLACK_PAWN;
+	state.grid[8]  = CHESS_BLACK_PAWN;
+	state.grid[9]  = CHESS_BLACK_PAWN;
+	state.grid[10] = CHESS_BLACK_PAWN;
+	state.grid[11] = CHESS_BLACK_PAWN;
+	state.grid[12] = CHESS_BLACK_PAWN;
+	state.grid[13] = CHESS_BLACK_PAWN;
+	state.grid[14] = CHESS_BLACK_PAWN;
+	state.grid[15] = CHESS_BLACK_PAWN;
 
-	chess_state.grid[48] = CHESS_WHITE_PAWN;
-	chess_state.grid[49] = CHESS_WHITE_PAWN;
-	chess_state.grid[50] = CHESS_WHITE_PAWN;
-	chess_state.grid[51] = CHESS_WHITE_PAWN;
-	chess_state.grid[52] = CHESS_WHITE_PAWN;
-	chess_state.grid[53] = CHESS_WHITE_PAWN;
-	chess_state.grid[54] = CHESS_WHITE_PAWN;
-	chess_state.grid[55] = CHESS_WHITE_PAWN;
+	state.grid[48] = CHESS_WHITE_PAWN;
+	state.grid[49] = CHESS_WHITE_PAWN;
+	state.grid[50] = CHESS_WHITE_PAWN;
+	state.grid[51] = CHESS_WHITE_PAWN;
+	state.grid[52] = CHESS_WHITE_PAWN;
+	state.grid[53] = CHESS_WHITE_PAWN;
+	state.grid[54] = CHESS_WHITE_PAWN;
+	state.grid[55] = CHESS_WHITE_PAWN;
 
-	chess_state.grid[56] = CHESS_WHITE_ROOK;
-	chess_state.grid[57] = CHESS_WHITE_HORSE;
-	chess_state.grid[58] = CHESS_WHITE_BISHOP;
-	chess_state.grid[59] = CHESS_WHITE_QUEEN;
-	chess_state.grid[60] = CHESS_WHITE_KING;
-	chess_state.grid[61] = CHESS_WHITE_BISHOP;
-	chess_state.grid[62] = CHESS_WHITE_HORSE;
-	chess_state.grid[63] = CHESS_WHITE_ROOK;
+	state.grid[56] = CHESS_WHITE_ROOK;
+	state.grid[57] = CHESS_WHITE_HORSE;
+	state.grid[58] = CHESS_WHITE_BISHOP;
+	state.grid[59] = CHESS_WHITE_QUEEN;
+	state.grid[60] = CHESS_WHITE_KING;
+	state.grid[61] = CHESS_WHITE_BISHOP;
+	state.grid[62] = CHESS_WHITE_HORSE;
+	state.grid[63] = CHESS_WHITE_ROOK;
 
-	return chess_state;
+	return state;
 }
 
-static uint16_t* CHESS_EnumerateLegalMoves(CHESS_ChessBoardState* chess_state) {
-	uint16_t* legal_moves = malloc(sizeof(uint16_t) * 4096);
+static intmax* CHESS_EnumerateLegalMoves(CHESS_ChessBoardState* state) {
+	intmax* legal_moves = malloc(sizeof(intmax) * 4096);
 	if (!legal_moves) {
 		const char* message = "OOM!";
 		fprintf(stderr, "CHESS_EnumerateLegalMoves() Failed: %s", message);
 		exit(EXIT_FAILURE);
-	} memset(legal_moves, UINT16_MAX, sizeof(uint16_t) * 4096);
+	}
 
-	for (intmax start = 0; start < 64; start++) {
+	for (intmax i = 0; i < 4069; i++) {
+		legal_moves[i] = INT64_MAX;
+	}
+
+	for (intmax start_square = 0; start_square < 64; start_square++) {
 		intmax num_moves = 0;
-		uint16_t* moves = &legal_moves[start * 64];
-		uint16_t piece = chess_state->grid[start];
-		if (piece == CHESS_NULL_PIECE) { continue; }
-		intmax type = piece & 0b0000000000001111;
-		bool rooky = (type == CHESS_WHITE_ROOK) || (type == CHESS_BLACK_ROOK) || (type == CHESS_WHITE_QUEEN) || (type == CHESS_BLACK_QUEEN);
-		bool bishopy = (type == CHESS_WHITE_BISHOP) || (type == CHESS_BLACK_BISHOP) || (type == CHESS_WHITE_QUEEN) || (type == CHESS_BLACK_QUEEN);
-		intmax start_i = start % 8;
-		intmax start_j = start / 8;
+		intmax* moves = &legal_moves[start_square * 64];
+		uint8_t element = state->grid[start_square];
+		if (element == CHESS_NULL_PIECE) { continue; }
+		uint8_t type = element & CHESS_TYPE_MASK;
+		bool rooky = (type == CHESS_ROOK) || (type == CHESS_QUEEN);
+		bool bishopy = (type == CHESS_BISHOP) || (type == CHESS_QUEEN);
+		intmax start_i = start_square % 8;
+		intmax start_j = start_square / 8;
 		if (rooky) {
 			if (start_i < 7) {
 				for (intmax end_i = start_i + 1; end_i < 8; end_i++) {
-					intmax end_index = (start_j * 8) + end_i;
-					moves[num_moves] = end_index;
+					intmax end_square = (start_j * 8) + end_i;
+					moves[num_moves] = end_square;
 					num_moves++;
 				}
 			}
@@ -199,7 +215,7 @@ static uint16_t* CHESS_EnumerateLegalMoves(CHESS_ChessBoardState* chess_state) {
 	return legal_moves;
 }
 
-static void CHESS_RenderChessBoard(CHESS_ChessBoardState* chess_state, uint16_t* legal_moves) {
+static void CHESS_RenderChessBoard(CHESS_ChessBoardState* state, intmax* legal_moves) {
 	intmax screen_width, screen_height;
 	ROSE_GetScreenSize(&screen_width, &screen_height);
 
@@ -208,18 +224,16 @@ static void CHESS_RenderChessBoard(CHESS_ChessBoardState* chess_state, uint16_t*
 	ROSE_DrawSprite(board_sprite, board_px, board_py, 1.0, ROSE_COLOR_WHITE);
 
 	for (intmax index = 0; index < 64; index++) {
-		uint16_t piece = chess_state->grid[index];
+		uint8_t piece = state->grid[index];
 		if (piece == CHESS_NULL_PIECE) { continue; }
-		intmax i = index % 8;
-		intmax j = index / 8;
-		intmax sprite_index = piece & 0b0000000000001111;
+		intmax sprite_index = piece & 0b00001111;
 		ROSE_Sprite* sprite = chess_pieces[sprite_index];
-		intmax sprite_px = board_px + (i * CHESS_SQUARE_WIDTH);
-		intmax sprite_py = board_py + (j * CHESS_SQUARE_WIDTH);
-		ROSE_DrawSprite(sprite, sprite_px, sprite_py, 1.0, ROSE_COLOR_WHITE);
+		intmax x = board_px + ((index % 8) * CHESS_SQUARE_WIDTH);
+		intmax y = board_py + ((index / 8) * CHESS_SQUARE_WIDTH);
+		ROSE_DrawSprite(sprite, x, y, 1.0, ROSE_COLOR_WHITE);
 	}
 
-	intmax mouse_square = SIZE_MAX;
+	intmax mouse_square = INT64_MAX;
 	intmax mouse_px, mouse_py;
 	ROSE_GetMousePosition(&mouse_px, &mouse_py);
 	intmax board_px_max = board_px + CHESS_BOARD_WIDTH;
@@ -234,16 +248,16 @@ static void CHESS_RenderChessBoard(CHESS_ChessBoardState* chess_state, uint16_t*
 		mouse_square = (j * 8) + i;
 	}
 
-	static uint16_t hand_piece = CHESS_NULL_PIECE;
-	static intmax hand_piece_index = SIZE_MAX;
+	static uint8_t hand_piece = CHESS_NULL_PIECE;
+	static intmax hand_square = INT64_MAX;
 
 	if (ROSE_PressedMouseButton(ROSE_MOUSE_LEFT)) {
-		if (mouse_square != SIZE_MAX) {
-			uint16_t piece = chess_state->grid[mouse_square];
+		if (mouse_square != INT64_MAX) {
+			uint8_t piece = state->grid[mouse_square];
 			if (piece != CHESS_NULL_PIECE) {
 				hand_piece = piece;
-				chess_state->grid[mouse_square] = CHESS_NULL_PIECE;
-				hand_piece_index = mouse_square;
+				hand_square = mouse_square;
+				state->grid[mouse_square] = CHESS_NULL_PIECE;
 			}
 		}
 	}
@@ -254,34 +268,34 @@ static void CHESS_RenderChessBoard(CHESS_ChessBoardState* chess_state, uint16_t*
 				break;
 			}
 
-			if (mouse_square != SIZE_MAX) {
-				chess_state->grid[mouse_square] = hand_piece;
+			if (mouse_square != INT64_MAX) {
+				state->grid[mouse_square] = hand_piece;
 				hand_piece = CHESS_NULL_PIECE;
-				hand_piece_index = SIZE_MAX;
+				hand_square = INT64_MAX;
 				break;
 			}
 			
-			chess_state->grid[hand_piece_index] = hand_piece;
+			state->grid[hand_square] = hand_piece;
 			hand_piece = CHESS_NULL_PIECE;
-			hand_piece_index = SIZE_MAX;
+			hand_square = INT64_MAX;
 			break;
 		}
 	}
 
-	if (hand_piece != CHESS_NULL_PIECE) {
+	if (hand_square != INT64_MAX) {
 
-		uint16_t* moves = &legal_moves[hand_piece_index * 64];
+		intmax* moves = &legal_moves[hand_square * 64];
 		intmax move_index = 0;
 		for (;;) {
-			intmax end_pos = moves[move_index];
+			intmax end_square = moves[move_index];
 			move_index++;
-			if (end_pos == UINT16_MAX) { break; }
-			intmax x = board_px + ((end_pos % 8) * CHESS_SQUARE_WIDTH);
-			intmax y = board_py + ((end_pos / 8) * CHESS_SQUARE_WIDTH);
+			if (end_square == INT64_MAX) { break; }
+			intmax x = board_px + ((end_square % 8) * CHESS_SQUARE_WIDTH);
+			intmax y = board_py + ((end_square / 8) * CHESS_SQUARE_WIDTH);
 			ROSE_DrawSprite(highlight_sprite, x, y, 1.0, ROSE_COLOR_WHITE);
 		}
 
-		intmax sprite_index = hand_piece & 0b0000000000001111;
+		intmax sprite_index = hand_piece & CHESS_SPRITE_MASK;
 		ROSE_Sprite* sprite = chess_pieces[sprite_index];
 		intmax x = mouse_px - (CHESS_SQUARE_WIDTH / 2);
 		intmax y = mouse_py - (CHESS_SQUARE_WIDTH / 2);
@@ -299,7 +313,7 @@ int main(void) {
 
 	while (ROSE_PollEvents()) {
 		ROSE_ClearScreen(ROSE_COLOR_BLACK);
-		uint16_t* legal_moves = CHESS_EnumerateLegalMoves(&chess_state);
+		intmax* legal_moves = CHESS_EnumerateLegalMoves(&chess_state);
 		CHESS_RenderChessBoard(&chess_state, legal_moves);
 		free(legal_moves);
 		ROSE_SwapBuffers();
