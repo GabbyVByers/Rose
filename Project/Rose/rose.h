@@ -8,6 +8,14 @@
 
 #include "core.h"
 
+// ?
+typedef uint64_t uintmax;
+typedef int64_t  intmax;
+
+// ?
+typedef uint64_t usize;
+typedef int64_t  isize;
+
 typedef struct ROSE_Vertex {
 	float pos[2];
 	float uv[2];
