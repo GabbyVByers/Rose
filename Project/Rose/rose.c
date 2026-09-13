@@ -6,25 +6,25 @@
 #include "rose.h"
 
 typedef struct ROSE_Image {
-	size_t w, h;
+	intmax w, h;
 	uint8_t* pixels;
 } ROSE_Image;
 
 typedef struct ROSE_Sprite {
-	size_t w, h;
+	intmax w, h;
 	SDL_GPUBuffer* buffer;
 	SDL_GPUTexture* texture;
 } ROSE_Sprite;
 
 typedef struct ROSE_Text {
-	size_t w, h;
-	size_t num_vertices;
+	intmax w, h;
+	intmax num_vertices;
 	SDL_GPUBuffer* buffer;
 } ROSE_Text;
 
 static bool rose = false;
-static size_t screen_width = 0;
-static size_t screen_height = 0;
+static intmax screen_width = 0;
+static intmax screen_height = 0;
 static SDL_Window* window = NULL;
 static SDL_GPUDevice* device = NULL;
 static SDL_GPUSampler* sampler = NULL;
@@ -55,7 +55,7 @@ static bool prev_keyboard_state[SDL_SCANCODE_COUNT] = { false };
  *   INIT / QUIT
  */
 
-void ROSE_Init(const char* title, size_t w, size_t h, bool vkdebug) {
+void ROSE_Init(const char* title, intmax w, intmax h, bool vkdebug) {
 	if (rose) {
 		const char* message = "ROSE has Already been Initialized!";
 		fprintf(stderr, "ROSE_Init() Failed: %s", message);
@@ -120,8 +120,8 @@ void ROSE_Init(const char* title, size_t w, size_t h, bool vkdebug) {
 
 	fseek(vertex_file, 0, SEEK_END);
 	fseek(fragment_file, 0, SEEK_END);
-	size_t vertex_code_size = ftell(vertex_file);
-	size_t fragment_code_size = ftell(fragment_file);
+	intmax vertex_code_size = ftell(vertex_file);
+	intmax fragment_code_size = ftell(fragment_file);
 	rewind(vertex_file);
 	rewind(fragment_file);
 
@@ -279,20 +279,25 @@ void ROSE_Init(const char* title, size_t w, size_t h, bool vkdebug) {
 	SDL_ReleaseGPUShader(device, vertex_shader_program);
 	SDL_ReleaseGPUShader(device, fragment_shader_program);
 
-	const char* ascii_path = "Resources/ascii.png";
-	int ascii_w, ascii_h, n;
-	stbi_set_flip_vertically_on_load(true);
-	unsigned char* ascii_image = stbi_load(ascii_path, &ascii_w, &ascii_h, &n, 4);
-	size_t ascii_image_size = (size_t)ascii_w * (size_t)ascii_h * (size_t)4;
+	{ // Ascii Texture
+		int w, h, n;
+		const char* path = "Resources/ascii.png";
+		stbi_set_flip_vertically_on_load(true);
+		uint8_t* stb_image = stbi_load(path, &w, &h, &n, 4);
 
-	if (!ascii_image) {
-		fprintf(stderr, "Couldn't Open: %s\n", ascii_path);
-		exit(EXIT_FAILURE);
+		if (!stb_image) {
+			fprintf(stderr, "Couldn't Open: %s\n", path);
+			exit(EXIT_FAILURE);
+		}
+
+		intmax width = (intmax)w;
+		intmax height = (intmax)h;
+		intmax image_size = (width * height * 4);
+
+		ascii_texture = ROSE_INTERNAL_CreateRenderTexture(width, height);
+		ROSE_INTERNAL_UploadImageToRenderTexture(stb_image, width, height, ascii_texture);
+		stbi_image_free(stb_image);
 	}
-
-	ascii_texture = ROSE_INTERNAL_CreateRenderTexture(ascii_w, ascii_h);
-	ROSE_INTERNAL_UploadImageToRenderTexture(ascii_image, ascii_w, ascii_h, ascii_texture);
-	stbi_image_free(ascii_image);
 }
 
 void ROSE_Quit(void) {
@@ -358,10 +363,10 @@ ROSE_Image* ROSE_LoadPNGImage(const char* path) {
 		exit(EXIT_FAILURE);
 	}
 
-	image->w = (size_t)w;
-	image->h = (size_t)h;
-	size_t buffer_size = image->w * image->h * (size_t)4;
-	image->pixels = (uint8_t*)malloc(buffer_size);
+	image->w = (intmax)w;
+	image->h = (intmax)h;
+	intmax buffer_size = (image->w * image->h * 4);
+	image->pixels = malloc(buffer_size);
 	if (!image->pixels) {
 		const char* message = "OOM!";
 		fprintf(stderr, "ROSE_LoadPNGImage() Failed: %s\n", message);
@@ -373,44 +378,44 @@ ROSE_Image* ROSE_LoadPNGImage(const char* path) {
 	return image;
 }
 
-ROSE_Image* ROSE_CreateImage(size_t w, size_t h) {
-	ROSE_Image* image = (ROSE_Image*)malloc(sizeof(ROSE_Image));
+ROSE_Image* ROSE_CreateImage(intmax w, intmax h) {
+	ROSE_Image* image = malloc(sizeof(ROSE_Image));
 	if (!image) {
 		const char* message = "OOM!";
 		fprintf(stderr, "ROSE_LoadPNGImage() Failed: %s\n", message);
 		exit(EXIT_FAILURE);
 	}
 
-	image->w = (size_t)w;
-	image->h = (size_t)h;
-	size_t buffer_size = image->w * image->h * (size_t)4;
-	image->pixels = (uint8_t*)malloc(buffer_size);
+	image->w = w;
+	image->h = h;
+	intmax buffer_size = (image->w * image->h * 4);
+	image->pixels = malloc(buffer_size);
 	if (!image->pixels) {
 		const char* message = "OOM!";
 		fprintf(stderr, "ROSE_LoadPNGImage() Failed: %s\n", message);
 		exit(EXIT_FAILURE);
 	}
 
-	memset(image->pixels, (uint8_t)255, buffer_size);
+	memset(image->pixels, 255, buffer_size);
 	return image;
 }
 
-ROSE_Color ROSE_GetImagePixel(ROSE_Image* image, size_t x, size_t y) {
+ROSE_Color ROSE_GetImagePixel(ROSE_Image* image, intmax x, intmax y) {
 	if (!image) {
 		const char* message = "Image is NULL!";
 		fprintf(stderr, "ROSE_GetImagePixel() Failed: %s", message);
 		exit(EXIT_FAILURE);
 	}
 
-	bool bad_bounds = (x < (size_t)0) || (x >= image->w);
-	bad_bounds = bad_bounds || ((y < (size_t)0) || (y >= image->h));
+	bool bad_bounds = (x < 0) || (x >= image->w);
+	bad_bounds = bad_bounds || ((y < 0) || (y >= image->h));
 	if (bad_bounds) {
 		const char* message = "Out of Bounds!";
 		fprintf(stderr, "PutPixel() Failed: %s\n", message);
 		exit(EXIT_FAILURE);
 	}
 
-	size_t index = ((((image->h - 1) - y) * image->w) + x) * (size_t)4;
+	intmax index = (((((image->h - 1) - y) * image->w) + x) * 4);
 	uint8_t r = image->pixels[index + 0];
 	uint8_t g = image->pixels[index + 1];
 	uint8_t b = image->pixels[index + 2];
@@ -424,29 +429,29 @@ ROSE_Color ROSE_GetImagePixel(ROSE_Image* image, size_t x, size_t y) {
 	};
 }
 
-void ROSE_SetImagePixel(ROSE_Image* image, size_t x, size_t y, ROSE_Color color) {
+void ROSE_SetImagePixel(ROSE_Image* image, intmax x, intmax y, ROSE_Color color) {
 	if (!image) {
 		const char* message = "Image is NULL!";
 		fprintf(stderr, "ROSE_SetImagePixel() Failed: %s", message);
 		exit(EXIT_FAILURE);
 	}
 
-	bool bad_bounds = (x < (size_t)0) || (x >= image->w);
-	bad_bounds = bad_bounds || ((y < (size_t)0) || (y >= image->h));
+	bool bad_bounds = (x < 0) || (x >= image->w);
+	bad_bounds = bad_bounds || ((y < 0) || (y >= image->h));
 	if (bad_bounds) {
 		const char* message = "Out of Bounds!";
 		fprintf(stderr, "PutPixel() Failed: %s\n", message);
 		exit(EXIT_FAILURE);
 	}
 
-	size_t index = ((((image->h - 1) - y) * image->w) + x) * (size_t)4;
+	intmax index = (((((image->h - 1) - y) * image->w) + x) * 4);
 	image->pixels[index + 0] = (uint8_t)(color.r * 255.0f);
 	image->pixels[index + 1] = (uint8_t)(color.g * 255.0f);
 	image->pixels[index + 2] = (uint8_t)(color.b * 255.0f);
 	image->pixels[index + 3] = (uint8_t)(color.a * 255.0f);
 }
 
-void ROSE_GetImageSize(ROSE_Image* image, size_t* w, size_t* h) {
+void ROSE_GetImageSize(ROSE_Image* image, intmax* w, intmax* h) {
 	if (!image) {
 		const char* message = "Image is NULL!";
 		fprintf(stderr, "ROSE_GetImageSize() Failed: %s", message);
@@ -522,11 +527,6 @@ void ROSE_UploadSpriteTexture(ROSE_Sprite* sprite, ROSE_Image* image) {
 		exit(EXIT_FAILURE);
 	}
 
-	if ((sprite->w == image->w) && (sprite->h == image->h)) {
-		ROSE_INTERNAL_UploadImageToRenderTexture(image->pixels, image->w, image->h, sprite->texture);
-		return;
-	}
-
 	sprite->w = image->w;
 	sprite->h = image->h;
 	SDL_ReleaseGPUTexture(device, sprite->texture);
@@ -534,7 +534,7 @@ void ROSE_UploadSpriteTexture(ROSE_Sprite* sprite, ROSE_Image* image) {
 	ROSE_INTERNAL_UploadImageToRenderTexture(image->pixels, image->w, image->h, sprite->texture);
 }
 
-void ROSE_GetSpriteSize(ROSE_Sprite* sprite, size_t* w, size_t* h) {
+void ROSE_GetSpriteSize(ROSE_Sprite* sprite, intmax* w, intmax* h) {
 	if (!rose) {
 		const char* message = "ROSE has not been Initialized!";
 		fprintf(stderr, "ROSE_GetSpriteSize() Failed: %s", message);
@@ -574,38 +574,38 @@ ROSE_Text* ROSE_CreateText(const char* string) {
 		exit(EXIT_FAILURE);
 	}
 
-	ROSE_Text* text = (ROSE_Text*)malloc(sizeof(ROSE_Text));
+	ROSE_Text* text = malloc(sizeof(ROSE_Text));
 	if (!text) {
 		const char* message = "OOM!";
 		fprintf(stderr, "ROSE_CreateText() Failed: %s\n", message);
 		exit(EXIT_FAILURE);
 	}
 	
-	size_t num_characters = 0;
+	intmax num_characters = 0;
 	while (string[num_characters] != '\0') {
 		num_characters++;
 	}
 
-	const size_t BUFFER_SIZE = 4096;
+	const intmax BUFFER_SIZE = 4096;
 	if (num_characters >= BUFFER_SIZE) {
 		static const char* message = "String Too Large!";
 		fprintf(stderr, "CreateTextBox() Failed: %s\n", message);
 		exit(EXIT_FAILURE);
 	}
 
-	size_t num_vertices = num_characters * (size_t)6;
-	ROSE_Vertex* vertices = (ROSE_Vertex*)malloc(sizeof(ROSE_Vertex) * num_vertices);
+	intmax num_vertices = (num_characters * 6);
+	ROSE_Vertex* vertices = malloc(sizeof(ROSE_Vertex) * num_vertices);
 	if (!vertices) {
 		const char* message = "Returned NULL!";
 		fprintf(stderr, "malloc() Failed: %s\n", message);
 		exit(EXIT_FAILURE);
 	}
 
-	for (size_t i = 0; i < num_characters; i++) {
-		size_t index = i * (size_t)6;
-		char c = (string[i] - (uint8_t)32);
-		float w = 1.0f / 95.0f;
-		float x = w * ((float)c);
+	for (intmax i = 0; i < num_characters; i++) {
+		intmax index = (i * 6);
+		char character_index = (string[i] - 32); // todo: map oor chars to '?'
+		float w = (1.0f / 95.0f);
+		float x = (w * (float)character_index);
 		vertices[index + 0] = (ROSE_Vertex){ { i + 0, 0 }, { x,     1 } };
 		vertices[index + 1] = (ROSE_Vertex){ { i + 1, 0 }, { x + w, 1 } };
 		vertices[index + 2] = (ROSE_Vertex){ { i + 1,-1 }, { x + w, 0 } };
@@ -614,8 +614,8 @@ ROSE_Text* ROSE_CreateText(const char* string) {
 		vertices[index + 5] = (ROSE_Vertex){ { i + 0,-1 }, { x,     0 } };
 	}
 
-	text->w = (size_t)7,
-	text->h = (size_t)11,
+	text->w = 7,
+	text->h = 11,
 	text->buffer = ROSE_INTERNAL_CreateVertexBuffer(vertices, num_vertices),
 	text->num_vertices = num_vertices,
 	free(vertices);
@@ -679,14 +679,14 @@ void ROSE_ToggleVSync(bool vsync) {
 	} return;
 }
 
-void ROSE_SetMinScreenSize(size_t w, size_t h) {
-	if (!SDL_SetWindowMinimumSize(window, (int)w, (int)h)) {
+void ROSE_SetMinScreenSize(intmax w, intmax h) {
+	if (!SDL_SetWindowMinimumSize(window, w, h)) {
 		SDL_Log("SDL_SetWindowMinimumSize() Failed: %s", SDL_GetError());
 		exit(EXIT_FAILURE);
 	}
 }
 
-void ROSE_GetScreenSize(size_t* w, size_t* h) {
+void ROSE_GetScreenSize(intmax* w, intmax* h) {
 	if (!rose) {
 		const char* message = "ROSE has not been Initialized!";
 		fprintf(stderr, "ROSE_GetScreenSize() Failed: %s", message);
@@ -802,7 +802,7 @@ void ROSE_ClearScreen(ROSE_Color color) {
 	} SDL_BindGPUGraphicsPipeline(render_pass, graphics_pipeline);
 }
 
-void ROSE_DrawSprite(ROSE_Sprite* sprite, size_t xpos, size_t ypos, double scale, ROSE_Color color) {
+void ROSE_DrawSprite(ROSE_Sprite* sprite, intmax xpos, intmax ypos, double scale, ROSE_Color color) {
 	if (!rose) {
 		const char* message = "ROSE has not been Initialized!";
 		fprintf(stderr, "ROSE_DrawSprite() Failed: %s", message);
@@ -833,10 +833,15 @@ void ROSE_DrawSprite(ROSE_Sprite* sprite, size_t xpos, size_t ypos, double scale
 	double scaled_width = (double)sprite->w * scale;
 	double scaled_height = (double)sprite->h * scale;
 
-	double w = (scaled_width / (double)screen_width) * 2.0;
-	double h = (scaled_height / (double)screen_height) * 2.0;
-	double x = -1.0 + (((double)xpos / (double)screen_width) * 2.0);
-	double y = 1.0 - (((double)ypos / (double)screen_height) * 2.0);
+	double ww = (scaled_width / (double)screen_width) * 2.0;
+	double hh = (scaled_height / (double)screen_height) * 2.0;
+	double xx = -1.0 + (((double)xpos / (double)screen_width) * 2.0);
+	double yy = 1.0 - (((double)ypos / (double)screen_height) * 2.0);
+
+	float w = (float)ww;
+	float h = (float)hh;
+	float x = (float)xx;
+	float y = (float)yy;
 
 	typedef struct Uniform {
 		float TransformMatrix[16];
@@ -864,7 +869,7 @@ void ROSE_DrawSprite(ROSE_Sprite* sprite, size_t xpos, size_t ypos, double scale
 	SDL_DrawGPUPrimitives(render_pass, 6, 1, 0, 0);
 }
 
-void ROSE_DrawText(ROSE_Text* text, size_t xpos, size_t ypos, double scale, ROSE_Color color) {
+void ROSE_DrawText(ROSE_Text* text, intmax xpos, intmax ypos, double scale, ROSE_Color color) {
 	if (!rose) {
 		const char* message = "ROSE has not been Initialized!";
 		fprintf(stderr, "ROSE_DrawText() Failed: %s", message);
@@ -895,10 +900,15 @@ void ROSE_DrawText(ROSE_Text* text, size_t xpos, size_t ypos, double scale, ROSE
 	double scaled_width = (double)text->w * scale;
 	double scaled_height = (double)text->h * scale;
 
-	double w = (scaled_width / (double)screen_width) * 2.0;
-	double h = (scaled_height / (double)screen_height) * 2.0;
-	double x = -1.0 + (((double)xpos / (double)screen_width) * 2.0);
-	double y = 1.0 - (((double)ypos / (double)screen_height) * 2.0);
+	double ww = (scaled_width / (double)screen_width) * 2.0;
+	double hh = (scaled_height / (double)screen_height) * 2.0;
+	double xx = -1.0 + (((double)xpos / (double)screen_width) * 2.0);
+	double yy = 1.0 - (((double)ypos / (double)screen_height) * 2.0);
+
+	float w = (float)ww;
+	float h = (float)hh;
+	float x = (float)xx;
+	float y = (float)yy;
 
 	typedef struct Uniform {
 		float TransformMatrix[16];
@@ -1000,34 +1010,34 @@ bool ROSE_ReleasedMouseButton(int button) {
 	} return ((prev_mouse_state & SDL_BUTTON_MASK(button)) != 0) && ((curr_mouse_state & SDL_BUTTON_MASK(button)) == 0);
 }
 
-void ROSE_GetMousePosition(size_t* px, size_t* py) {
+void ROSE_GetMousePosition(intmax* px, intmax* py) {
 	if (!rose) {
 		const char* message = "ROSE has not been Initialized!";
 		fprintf(stderr, "ROSE_GetMousePosition() Failed: %s", message);
 		exit(EXIT_FAILURE);
 	}
 
-	*px = (size_t)mouse_px;
-	*py = (size_t)mouse_py;
+	*px = (intmax)mouse_px;
+	*py = (intmax)mouse_py;
 }
 
-void ROSE_GetMouseVelocity(size_t* vx, size_t* vy) {
+void ROSE_GetMouseVelocity(intmax* vx, intmax* vy) {
 	if (!rose) {
 		const char* message = "ROSE has not been Initialized!";
 		fprintf(stderr, "ROSE_GetMouseVelocity() Failed: %s", message);
 		exit(EXIT_FAILURE);
 	}
 
-	*vx = (size_t)mouse_vx;
-	*vy = (size_t)mouse_vy;
+	*vx = (intmax)mouse_vx;
+	*vy = (intmax)mouse_vy;
 }
 
-size_t ROSE_GetMouseScroll(void) {
+intmax ROSE_GetMouseScroll(void) {
 	if (!rose) {
 		const char* message = "ROSE has not been Initialized!";
 		fprintf(stderr, "ROSE_GetMouseScroll() Failed: %s", message);
 		exit(EXIT_FAILURE);
-	} return (size_t)mouse_scroll;
+	} return (intmax)mouse_scroll;
 }
 
 /*
@@ -1105,7 +1115,7 @@ SDL_GPUTexture* ROSE_INTERNAL_CreateDepthTexture(void) {
 	} return texture;
 }
 
-SDL_GPUTexture* ROSE_INTERNAL_CreateRenderTexture(size_t w, size_t h) {
+SDL_GPUTexture* ROSE_INTERNAL_CreateRenderTexture(intmax w, intmax h) {
 	SDL_GPUTextureCreateInfo texture_create_info = {
 		.type = SDL_GPU_TEXTURETYPE_2D,
 		.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM,
@@ -1124,14 +1134,14 @@ SDL_GPUTexture* ROSE_INTERNAL_CreateRenderTexture(size_t w, size_t h) {
 	} return texture;
 }
 
-void ROSE_INTERNAL_UploadImageToRenderTexture(uint8_t* image, size_t w, size_t h, SDL_GPUTexture* texture) {
+void ROSE_INTERNAL_UploadImageToRenderTexture(uint8_t* image, intmax w, intmax h, SDL_GPUTexture* texture) {
 	if (!rose) {
 		const char* message = "ROSE has not been Initialized!";
 		fprintf(stderr, "ROSE_INTERNAL_UploadImageToRenderTexture() Failed: %s", message);
 		exit(EXIT_FAILURE);
 	}
 
-	size_t image_size = w * h * (size_t)4;
+	intmax image_size = (w * h * 4);
 	SDL_GPUTransferBufferCreateInfo transfer_buffer_create_info = {
 		.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
 		.size = image_size,
@@ -1188,14 +1198,14 @@ void ROSE_INTERNAL_UploadImageToRenderTexture(uint8_t* image, size_t w, size_t h
 	SDL_ReleaseGPUTransferBuffer(device, transfer_buffer);
 }
 
-SDL_GPUBuffer* ROSE_INTERNAL_CreateVertexBuffer(ROSE_Vertex* vertices, size_t num_vertices) {
+SDL_GPUBuffer* ROSE_INTERNAL_CreateVertexBuffer(ROSE_Vertex* vertices, intmax num_vertices) {
 	if (!rose) {
 		const char* message = "ROSE has not been Initialized!";
 		fprintf(stderr, "ROSE_INTERNAL_CreateVertexBuffer() Failed: %s", message);
 		exit(EXIT_FAILURE);
 	}
 
-	size_t buffer_size = num_vertices * sizeof(ROSE_Vertex);
+	intmax buffer_size = num_vertices * sizeof(ROSE_Vertex);
 	SDL_GPUBufferCreateInfo buffer_create_info = {
 		.usage = SDL_GPU_BUFFERUSAGE_VERTEX,
 		.size = buffer_size,

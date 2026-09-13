@@ -200,14 +200,14 @@ static uint16_t* CHESS_EnumerateLegalMoves(CHESS_ChessBoardState* chess_state) {
 }
 
 static void CHESS_RenderChessBoard(CHESS_ChessBoardState* chess_state, uint16_t* legal_moves) {
-	size_t screen_width, screen_height;
+	intmax screen_width, screen_height;
 	ROSE_GetScreenSize(&screen_width, &screen_height);
 
-	size_t board_px = (screen_width - CHESS_BOARD_WIDTH) / 2;
-	size_t board_py = (screen_height - CHESS_BOARD_WIDTH) / 2;
+	intmax board_px = (screen_width - CHESS_BOARD_WIDTH) / 2;
+	intmax board_py = (screen_height - CHESS_BOARD_WIDTH) / 2;
 	ROSE_DrawSprite(chess_board_sprite, board_px, board_py, 1.0, ROSE_COLOR_WHITE);
 
-	for (size_t index = 0; index < 64; index++) {
+	for (intmax index = 0; index < 64; index++) {
 		uint16_t piece = chess_state->grid[index];
 		if (piece == CHESS_NULL_PIECE) { continue; }
 		size_t i = index % 8;

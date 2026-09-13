@@ -14,8 +14,11 @@
 #include "stdint.h"
 #include "stdbool.h"
 
-#define ROSE_MIN_WIDTH  ((size_t)32)
-#define ROSE_MIN_HEIGHT ((size_t)32)
+typedef intmax_t intmax;
+typedef uintmax_t uintmax;
+
+#define ROSE_MIN_WIDTH  ((intmax)32)
+#define ROSE_MIN_HEIGHT ((intmax)32)
 
 #define ROSE_COLOR_WHITE  ((ROSE_Color) { 1.0f, 1.0f, 1.0f, 1.0f })
 #define ROSE_COLOR_BLACK  ((ROSE_Color) { 0.0f, 0.0f, 0.0f, 1.0f })
