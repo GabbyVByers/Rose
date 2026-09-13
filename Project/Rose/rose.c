@@ -22,7 +22,7 @@ typedef struct ROSE_Text {
 	SDL_GPUBuffer* buffer;
 } ROSE_Text;
 
-static bool rose = false; // todo: guard rose init
+static bool rose = false;
 static size_t screen_width = 0;
 static size_t screen_height = 0;
 static SDL_Window* window = NULL;
@@ -958,7 +958,7 @@ bool ROSE_RevealMouseCursor(void) {
 	SDL_SetWindowRelativeMouseMode(window, false);
 }
 
-bool ROSE_PressingMouseButton(ROSE_MOUSE_BUTTON button) {
+bool ROSE_PressingMouseButton(int button) {
 	if (!rose) {
 		const char* message = "ROSE has not been Initialized!";
 		fprintf(stderr, "ROSE_PressingMouseButton() Failed: %s", message);
@@ -966,7 +966,7 @@ bool ROSE_PressingMouseButton(ROSE_MOUSE_BUTTON button) {
 	} return (curr_mouse_state & SDL_BUTTON_MASK(button)) != 0;
 }
 
-bool ROSE_PressedMouseButton(ROSE_MOUSE_BUTTON button) {
+bool ROSE_PressedMouseButton(int button) {
 	if (!rose) {
 		const char* message = "ROSE has not been Initialized!";
 		fprintf(stderr, "ROSE_PressedMouseButton() Failed: %s", message);
@@ -974,7 +974,7 @@ bool ROSE_PressedMouseButton(ROSE_MOUSE_BUTTON button) {
 	} return ((prev_mouse_state & SDL_BUTTON_MASK(button)) == 0) && ((curr_mouse_state & SDL_BUTTON_MASK(button)) != 0);
 }
 
-bool ROSE_ReleasedMouseButton(ROSE_MOUSE_BUTTON button) {
+bool ROSE_ReleasedMouseButton(int button) {
 	if (!rose) {
 		const char* message = "ROSE has not been Initialized!";
 		fprintf(stderr, "ROSE_ReleasedMouseButton() Failed: %s", message);
@@ -1016,7 +1016,7 @@ float ROSE_GetMouseScroll(void) {
  *   KEYBOARD
  */
 
-bool ROSE_PressingKeyboardButton(ROSE_KEYBOARD_BUTTON button) {
+bool ROSE_PressingKeyboardButton(int button) {
 	if (!rose) {
 		const char* message = "ROSE has not been Initialized!";
 		fprintf(stderr, "ROSE_PressingKeyboardButton() Failed: %s", message);
@@ -1030,7 +1030,7 @@ bool ROSE_PressingKeyboardButton(ROSE_KEYBOARD_BUTTON button) {
 	} return curr_keyboard_state[button];
 }
 
-bool ROSE_PressedKeyboardButton(ROSE_KEYBOARD_BUTTON button) {
+bool ROSE_PressedKeyboardButton(int button) {
 	if (!rose) {
 		const char* message = "ROSE has not been Initialized!";
 		fprintf(stderr, "ROSE_PressedKeyboardButton() Failed: %s", message);
@@ -1044,7 +1044,7 @@ bool ROSE_PressedKeyboardButton(ROSE_KEYBOARD_BUTTON button) {
 	} return (!prev_keyboard_state[button]) && (curr_keyboard_state[button]);
 }
 
-bool ROSE_ReleasedKeyboardButton(ROSE_KEYBOARD_BUTTON button) {
+bool ROSE_ReleasedKeyboardButton(int button) {
 	if (!rose) {
 		const char* message = "ROSE has not been Initialized!";
 		fprintf(stderr, "ROSE_ReleasedKeyboardButton() Failed: %s", message);

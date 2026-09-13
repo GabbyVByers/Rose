@@ -48,16 +48,16 @@ void ROSE_SwapBuffers(void);
 
 bool ROSE_HideMouseCursor(void);
 bool ROSE_RevealMouseCursor(void);
-bool ROSE_PressingMouseButton(ROSE_MOUSE_BUTTON);
-bool ROSE_PressedMouseButton(ROSE_MOUSE_BUTTON);
-bool ROSE_ReleasedMouseButton(ROSE_MOUSE_BUTTON);
+bool ROSE_PressingMouseButton(int);
+bool ROSE_PressedMouseButton(int);
+bool ROSE_ReleasedMouseButton(int);
 void ROSE_GetMousePosition(float*, float*);
 void ROSE_GetMouseVelocity(float*, float*);
 float ROSE_GetMouseScroll(void);
 
-bool ROSE_PressingKeyboardButton(ROSE_KEYBOARD_BUTTON);
-bool ROSE_PressedKeyboardButton(ROSE_KEYBOARD_BUTTON);
-bool ROSE_ReleasedKeyboardButton(ROSE_KEYBOARD_BUTTON);
+bool ROSE_PressingKeyboardButton(int);
+bool ROSE_PressedKeyboardButton(int);
+bool ROSE_ReleasedKeyboardButton(int);
 
 SDL_GPUTexture* ROSE_INTERNAL_CreateDepthTexture(void);
 SDL_GPUTexture* ROSE_INTERNAL_CreateRenderTexture(size_t, size_t);
