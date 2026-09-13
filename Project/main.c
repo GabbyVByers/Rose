@@ -24,17 +24,16 @@
 #define CHESS_BLACK_BISHOP 0b0000000000001101
 #define CHESS_BLACK_PAWN   0b0000000000001110
 
-ROSE_Image* chess_board_image = NULL;
-ROSE_Image* highlight_square_image = NULL;
-ROSE_Sprite* chess_board_sprite = NULL;
-ROSE_Sprite* highlight_square_sprite = NULL;
-ROSE_Sprite* chess_pieces[15] = { 0 };
+ROSE_Image* board_image = NULL;
+ROSE_Image* highlight_image = NULL;
+
+ROSE_Sprite* board_sprite = NULL;
+ROSE_Sprite* highlight_sprite = NULL;
+ROSE_Sprite* chess_pieces[15] = { NULL };
 
 static void CHESS_InitAssets(void) {
-	chess_board_image = ROSE_LoadPNGImage("Textures/Board.png");
-	highlight_square_image = ROSE_LoadPNGImage("Textures/Highlight.png");
-	chess_board_sprite = ROSE_CreateSprite(chess_board_image);
-	highlight_square_sprite = ROSE_CreateSprite(highlight_square_image);
+	board_image     = ROSE_LoadPNGImage("Textures/Board.png");
+	highlight_image = ROSE_LoadPNGImage("Textures/Highlight.png");
 
 	ROSE_Image* white_king_image   = ROSE_LoadPNGImage("Textures/White_King.png");
 	ROSE_Image* white_queen_image  = ROSE_LoadPNGImage("Textures/White_Queen.png");
@@ -49,6 +48,9 @@ static void CHESS_InitAssets(void) {
 	ROSE_Image* black_horse_image  = ROSE_LoadPNGImage("Textures/Black_Horse.png");
 	ROSE_Image* black_bishop_image = ROSE_LoadPNGImage("Textures/Black_Bishop.png");
 	ROSE_Image* black_pawn_image   = ROSE_LoadPNGImage("Textures/Black_Pawn.png");
+
+	board_sprite     = ROSE_CreateSprite(board_image);
+	highlight_sprite = ROSE_CreateSprite(highlight_image);
 
 	ROSE_Sprite* white_king_sprite   = ROSE_CreateSprite(white_king_image);
 	ROSE_Sprite* white_queen_sprite  = ROSE_CreateSprite(white_queen_image);
@@ -65,16 +67,14 @@ static void CHESS_InitAssets(void) {
 	ROSE_Sprite* black_pawn_sprite   = ROSE_CreateSprite(black_pawn_image);
 
 	chess_pieces[0] = NULL;
-	chess_pieces[7] = NULL;
-	chess_pieces[8] = NULL;
-
 	chess_pieces[CHESS_WHITE_KING]   = white_king_sprite;
 	chess_pieces[CHESS_WHITE_QUEEN]  = white_queen_sprite;
 	chess_pieces[CHESS_WHITE_ROOK]   = white_rook_sprite;
 	chess_pieces[CHESS_WHITE_HORSE]  = white_horse_sprite;
 	chess_pieces[CHESS_WHITE_BISHOP] = white_bishop_sprite;
 	chess_pieces[CHESS_WHITE_PAWN]   = white_pawn_sprite;
-
+	chess_pieces[7] = NULL;
+	chess_pieces[8] = NULL;
 	chess_pieces[CHESS_BLACK_KING]   = black_king_sprite;
 	chess_pieces[CHESS_BLACK_QUEEN]  = black_queen_sprite;
 	chess_pieces[CHESS_BLACK_ROOK]   = black_rook_sprite;
@@ -96,15 +96,15 @@ static void CHESS_InitAssets(void) {
 	ROSE_DestroyImage(black_bishop_image);
 	ROSE_DestroyImage(black_pawn_image);
 
-	ROSE_DestroyImage(chess_board_image);
-	ROSE_DestroyImage(highlight_square_image);
+	ROSE_DestroyImage(board_image);
+	ROSE_DestroyImage(highlight_image);
 }
 
 static void CHESS_CleanUpAssets(void) {
-	ROSE_DestroySprite(chess_board_sprite);
-	ROSE_DestroySprite(highlight_square_sprite);
+	ROSE_DestroySprite(board_sprite);
+	ROSE_DestroySprite(highlight_sprite);
 
-	for (size_t index = 0; index < 15; index++) {
+	for (intmax index = 0; index < 15; index++) {
 		ROSE_Sprite* sprite = chess_pieces[index];
 		if (sprite) { ROSE_DestroySprite(sprite); };
 	}
@@ -124,7 +124,7 @@ static CHESS_ChessBoardState CHESS_InitChessBoard(void) {
 	CHESS_ChessBoardState chess_state = { 0 };
 	chess_state.turn = CHESS_WHITE;
 
-	for (size_t index = 0; index < 64; index++) {
+	for (intmax index = 0; index < 64; index++) {
 		chess_state.grid[index] = CHESS_NULL_PIECE;
 	}
 
@@ -175,20 +175,20 @@ static uint16_t* CHESS_EnumerateLegalMoves(CHESS_ChessBoardState* chess_state) {
 		exit(EXIT_FAILURE);
 	} memset(legal_moves, UINT16_MAX, sizeof(uint16_t) * 4096);
 
-	for (size_t start = 0; start < 64; start++) {
-		size_t num_moves = 0;
-		uint16_t* moves = &legal_moves[start * (size_t)64];
+	for (intmax start = 0; start < 64; start++) {
+		intmax num_moves = 0;
+		uint16_t* moves = &legal_moves[start * 64];
 		uint16_t piece = chess_state->grid[start];
 		if (piece == CHESS_NULL_PIECE) { continue; }
-		size_t type = piece & 0b0000000000001111;
+		intmax type = piece & 0b0000000000001111;
 		bool rooky = (type == CHESS_WHITE_ROOK) || (type == CHESS_BLACK_ROOK) || (type == CHESS_WHITE_QUEEN) || (type == CHESS_BLACK_QUEEN);
 		bool bishopy = (type == CHESS_WHITE_BISHOP) || (type == CHESS_BLACK_BISHOP) || (type == CHESS_WHITE_QUEEN) || (type == CHESS_BLACK_QUEEN);
-		size_t start_i = start % 8;
-		size_t start_j = start / 8;
+		intmax start_i = start % 8;
+		intmax start_j = start / 8;
 		if (rooky) {
 			if (start_i < 7) {
-				for (size_t end_i = start_i + 1; end_i < 8; end_i++) {
-					size_t end_index = (start_j * 8) + end_i;
+				for (intmax end_i = start_i + 1; end_i < 8; end_i++) {
+					intmax end_index = (start_j * 8) + end_i;
 					moves[num_moves] = end_index;
 					num_moves++;
 				}
@@ -205,37 +205,37 @@ static void CHESS_RenderChessBoard(CHESS_ChessBoardState* chess_state, uint16_t*
 
 	intmax board_px = (screen_width - CHESS_BOARD_WIDTH) / 2;
 	intmax board_py = (screen_height - CHESS_BOARD_WIDTH) / 2;
-	ROSE_DrawSprite(chess_board_sprite, board_px, board_py, 1.0, ROSE_COLOR_WHITE);
+	ROSE_DrawSprite(board_sprite, board_px, board_py, 1.0, ROSE_COLOR_WHITE);
 
 	for (intmax index = 0; index < 64; index++) {
 		uint16_t piece = chess_state->grid[index];
 		if (piece == CHESS_NULL_PIECE) { continue; }
-		size_t i = index % 8;
-		size_t j = index / 8;
-		size_t sprite_index = piece & 0b0000000000001111;
+		intmax i = index % 8;
+		intmax j = index / 8;
+		intmax sprite_index = piece & 0b0000000000001111;
 		ROSE_Sprite* sprite = chess_pieces[sprite_index];
-		size_t sprite_px = board_px + (i * CHESS_SQUARE_WIDTH);
-		size_t sprite_py = board_py + (j * CHESS_SQUARE_WIDTH);
+		intmax sprite_px = board_px + (i * CHESS_SQUARE_WIDTH);
+		intmax sprite_py = board_py + (j * CHESS_SQUARE_WIDTH);
 		ROSE_DrawSprite(sprite, sprite_px, sprite_py, 1.0, ROSE_COLOR_WHITE);
 	}
 
-	size_t mouse_square = SIZE_MAX;
-	size_t mouse_px, mouse_py;
+	intmax mouse_square = SIZE_MAX;
+	intmax mouse_px, mouse_py;
 	ROSE_GetMousePosition(&mouse_px, &mouse_py);
-	size_t board_px_max = board_px + CHESS_BOARD_WIDTH;
-	size_t board_py_max = board_py + CHESS_BOARD_WIDTH;
+	intmax board_px_max = board_px + CHESS_BOARD_WIDTH;
+	intmax board_py_max = board_py + CHESS_BOARD_WIDTH;
 	bool mouse_over_board = ((mouse_px > board_px) && (mouse_px < board_px_max));
 	mouse_over_board = mouse_over_board && ((mouse_py > board_py) && (mouse_py < board_py_max));
 	if (mouse_over_board) {
-		size_t mouse_board_px = mouse_px - board_px;
-		size_t mouse_board_py = mouse_py - board_py;
-		size_t i = mouse_board_px / CHESS_SQUARE_WIDTH;
-		size_t j = mouse_board_py / CHESS_SQUARE_WIDTH;
-		mouse_square = (j * (size_t)8) + i;
+		intmax mouse_board_px = mouse_px - board_px;
+		intmax mouse_board_py = mouse_py - board_py;
+		intmax i = mouse_board_px / CHESS_SQUARE_WIDTH;
+		intmax j = mouse_board_py / CHESS_SQUARE_WIDTH;
+		mouse_square = (j * 8) + i;
 	}
 
 	static uint16_t hand_piece = CHESS_NULL_PIECE;
-	static size_t hand_piece_index = SIZE_MAX;
+	static intmax hand_piece_index = SIZE_MAX;
 
 	if (ROSE_PressedMouseButton(ROSE_MOUSE_LEFT)) {
 		if (mouse_square != SIZE_MAX) {
@@ -271,20 +271,20 @@ static void CHESS_RenderChessBoard(CHESS_ChessBoardState* chess_state, uint16_t*
 	if (hand_piece != CHESS_NULL_PIECE) {
 
 		uint16_t* moves = &legal_moves[hand_piece_index * 64];
-		size_t move_index = 0;
+		intmax move_index = 0;
 		for (;;) {
-			size_t end_pos = moves[move_index];
+			intmax end_pos = moves[move_index];
 			move_index++;
 			if (end_pos == UINT16_MAX) { break; }
-			size_t x = board_px + ((end_pos % 8) * CHESS_SQUARE_WIDTH);
-			size_t y = board_py + ((end_pos / 8) * CHESS_SQUARE_WIDTH);
-			ROSE_DrawSprite(highlight_square_sprite, x, y, 1.0, ROSE_COLOR_WHITE);
+			intmax x = board_px + ((end_pos % 8) * CHESS_SQUARE_WIDTH);
+			intmax y = board_py + ((end_pos / 8) * CHESS_SQUARE_WIDTH);
+			ROSE_DrawSprite(highlight_sprite, x, y, 1.0, ROSE_COLOR_WHITE);
 		}
 
-		size_t sprite_index = hand_piece & 0b0000000000001111;
+		intmax sprite_index = hand_piece & 0b0000000000001111;
 		ROSE_Sprite* sprite = chess_pieces[sprite_index];
-		size_t x = mouse_px - (CHESS_SQUARE_WIDTH / 2);
-		size_t y = mouse_py - (CHESS_SQUARE_WIDTH / 2);
+		intmax x = mouse_px - (CHESS_SQUARE_WIDTH / 2);
+		intmax y = mouse_py - (CHESS_SQUARE_WIDTH / 2);
 		ROSE_DrawSprite(sprite, x, y, 1.0, ROSE_COLOR_WHITE);
 	}
 }

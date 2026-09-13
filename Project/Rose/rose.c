@@ -754,8 +754,11 @@ void ROSE_ClearScreen(ROSE_Color color) {
 		exit(EXIT_FAILURE);
 	}
 
+	intmax new_width = (intmax)new_w;
+	intmax new_height = (intmax)new_h;
+
 	minimized = false;
-	if ((new_w == 0) || (new_h == 0)) {
+	if ((new_width == 0) || (new_height == 0)) {
 		minimized = true;
 		if (!SDL_SubmitGPUCommandBuffer(command_buffer)) {
 			fprintf(stderr, "SDL_SubmitGPUCommandBuffer() Failed: %s\n", SDL_GetError());
@@ -764,9 +767,9 @@ void ROSE_ClearScreen(ROSE_Color color) {
 		return;
 	}
 
-	const bool reconstruct_textures = ((size_t)new_w != screen_width) || ((size_t)new_h != screen_height);
-	screen_width = (size_t)new_w;
-	screen_height = (size_t)new_h;
+	const bool reconstruct_textures = (new_width != screen_width) || (new_height != screen_height);
+	screen_width = new_width;
+	screen_height = new_height;
 
 	if (reconstruct_textures) {
 		SDL_ReleaseGPUTexture(device, depth_texture);
