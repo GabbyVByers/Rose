@@ -167,7 +167,39 @@ static CHESS_ChessBoardState CHESS_InitChessBoard(void) {
 	return chess_state;
 }
 
-static void CHESS_RenderChessBoard(CHESS_ChessBoardState* chess_state) {
+static uint16_t* CHESS_EnumerateLegalMoves(CHESS_ChessBoardState* chess_state) {
+	uint16_t* legal_moves = malloc(sizeof(uint16_t) * 4096);
+	if (!legal_moves) {
+		const char* message = "OOM!";
+		fprintf(stderr, "CHESS_EnumerateLegalMoves() Failed: %s", message);
+		exit(EXIT_FAILURE);
+	} memset(legal_moves, UINT16_MAX, sizeof(uint16_t) * 4096);
+
+	for (size_t start = 0; start < 64; start++) {
+		size_t num_moves = 0;
+		uint16_t* moves = &legal_moves[start * (size_t)64];
+		uint16_t piece = chess_state->grid[start];
+		if (piece == CHESS_NULL_PIECE) { continue; }
+		size_t type = piece & 0b0000000000001111;
+		bool rooky = (type == CHESS_WHITE_ROOK) || (type == CHESS_BLACK_ROOK) || (type == CHESS_WHITE_QUEEN) || (type == CHESS_BLACK_QUEEN);
+		bool bishopy = (type == CHESS_WHITE_BISHOP) || (type == CHESS_BLACK_BISHOP) || (type == CHESS_WHITE_QUEEN) || (type == CHESS_BLACK_QUEEN);
+		size_t start_i = start % 8;
+		size_t start_j = start / 8;
+		if (rooky) {
+			if (start_i < 7) {
+				for (size_t end_i = start_i + 1; end_i < 8; end_i++) {
+					size_t end_index = (start_j * 8) + end_i;
+					moves[num_moves] = end_index;
+					num_moves++;
+				}
+			}
+		}
+	}
+
+	return legal_moves;
+}
+
+static void CHESS_RenderChessBoard(CHESS_ChessBoardState* chess_state, uint16_t* legal_moves) {
 	size_t screen_width, screen_height;
 	ROSE_GetScreenSize(&screen_width, &screen_height);
 
@@ -237,6 +269,18 @@ static void CHESS_RenderChessBoard(CHESS_ChessBoardState* chess_state) {
 	}
 
 	if (hand_piece != CHESS_NULL_PIECE) {
+
+		uint16_t* moves = &legal_moves[hand_piece_index * 64];
+		size_t move_index = 0;
+		for (;;) {
+			size_t end_pos = moves[move_index];
+			move_index++;
+			if (end_pos == UINT16_MAX) { break; }
+			size_t x = board_px + ((end_pos % 8) * CHESS_SQUARE_WIDTH);
+			size_t y = board_py + ((end_pos / 8) * CHESS_SQUARE_WIDTH);
+			ROSE_DrawSprite(highlight_square_sprite, x, y, 1.0, ROSE_COLOR_WHITE);
+		}
+
 		size_t sprite_index = hand_piece & 0b0000000000001111;
 		ROSE_Sprite* sprite = chess_pieces[sprite_index];
 		size_t x = mouse_px - (CHESS_SQUARE_WIDTH / 2);
@@ -246,7 +290,7 @@ static void CHESS_RenderChessBoard(CHESS_ChessBoardState* chess_state) {
 }
 
 int main(void) {
-	ROSE_Init("Chess Engine", 1200, 700, true);
+	ROSE_Init("Chess Engine", CHESS_BOARD_WIDTH, CHESS_BOARD_WIDTH, true);
 	ROSE_SetMinScreenSize(CHESS_BOARD_WIDTH, CHESS_BOARD_WIDTH);
 	ROSE_ToggleVSync(true);
 
@@ -255,7 +299,9 @@ int main(void) {
 
 	while (ROSE_PollEvents()) {
 		ROSE_ClearScreen(ROSE_COLOR_BLACK);
-		CHESS_RenderChessBoard(&chess_state);
+		uint16_t* legal_moves = CHESS_EnumerateLegalMoves(&chess_state);
+		CHESS_RenderChessBoard(&chess_state, legal_moves);
+		free(legal_moves);
 		ROSE_SwapBuffers();
 	}
 
