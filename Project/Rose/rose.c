@@ -48,8 +48,8 @@ static int curr_mouse_state = 0;
 static int prev_mouse_state = 0;
 static float mouse_scroll = 0.0f;
 
-static bool curr_keyboard_state[SDL_SCANCODE_COUNT] = { 0 };
-static bool prev_keyboard_state[SDL_SCANCODE_COUNT] = { 0 };
+static bool curr_keyboard_state[SDL_SCANCODE_COUNT] = { false };
+static bool prev_keyboard_state[SDL_SCANCODE_COUNT] = { false };
 
 /*
  *   INIT / QUIT
@@ -446,10 +446,10 @@ void ROSE_SetImagePixel(ROSE_Image* image, size_t x, size_t y, ROSE_Color color)
 	image->pixels[index + 3] = (uint8_t)(color.a * 255.0f);
 }
 
-void ROSE_ImageSize(ROSE_Image* image, size_t* w, size_t* h) {
+void ROSE_GetImageSize(ROSE_Image* image, size_t* w, size_t* h) {
 	if (!image) {
 		const char* message = "Image is NULL!";
-		fprintf(stderr, "ROSE_ImageSize() Failed: %s", message);
+		fprintf(stderr, "ROSE_GetImageSize() Failed: %s", message);
 		exit(EXIT_FAILURE);
 	}
 
@@ -532,6 +532,17 @@ void ROSE_UploadSpriteTexture(ROSE_Sprite* sprite, ROSE_Image* image) {
 	SDL_ReleaseGPUTexture(device, sprite->texture);
 	sprite->texture = ROSE_INTERNAL_CreateRenderTexture(image->w, image->h);
 	ROSE_INTERNAL_UploadImageToRenderTexture(image->pixels, image->w, image->h, sprite->texture);
+}
+
+void ROSE_GetSpriteSize(ROSE_Sprite* sprite, size_t* w, size_t* h) {
+	if (!rose) {
+		const char* message = "ROSE has not been Initialized!";
+		fprintf(stderr, "ROSE_GetSpriteSize() Failed: %s", message);
+		exit(EXIT_FAILURE);
+	}
+
+	*w = sprite->w;
+	*h = sprite->h;
 }
 
 void ROSE_DestroySprite(ROSE_Sprite* sprite) {

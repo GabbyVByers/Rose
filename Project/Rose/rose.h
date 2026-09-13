@@ -28,11 +28,12 @@ ROSE_Image* ROSE_LoadPNGImage(const char*);
 ROSE_Image* ROSE_CreateImage(size_t, size_t);
 ROSE_Color ROSE_GetImagePixel(ROSE_Image*, size_t, size_t);
 void ROSE_SetImagePixel(ROSE_Image*, size_t, size_t, ROSE_Color);
-void ROSE_ImageSize(ROSE_Image*, size_t*, size_t*);
+void ROSE_GetImageSize(ROSE_Image*, size_t*, size_t*);
 void ROSE_DestroyImage(ROSE_Image*);
 
 ROSE_Sprite* ROSE_CreateSprite(ROSE_Image*);
 void ROSE_UploadSpriteTexture(ROSE_Sprite*, ROSE_Image*);
+void ROSE_GetSpriteSize(ROSE_Sprite*, size_t*, size_t*);
 void ROSE_DestroySprite(ROSE_Sprite*);
 
 ROSE_Text* ROSE_CreateText(const char*);
