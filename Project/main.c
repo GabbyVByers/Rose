@@ -168,7 +168,6 @@ static CHESS_ChessBoardState CHESS_InitChessBoard(void) {
 }
 
 static void CHESS_RenderChessBoard(CHESS_ChessBoardState* chess_state) {
-
 	size_t screen_width, screen_height;
 	ROSE_GetScreenSize(&screen_width, &screen_height);
 
@@ -188,6 +187,62 @@ static void CHESS_RenderChessBoard(CHESS_ChessBoardState* chess_state) {
 		ROSE_DrawSprite(sprite, sprite_px, sprite_py, 1.0, ROSE_COLOR_WHITE);
 	}
 
+	size_t mouse_square = SIZE_MAX;
+	size_t mouse_px, mouse_py;
+	ROSE_GetMousePosition(&mouse_px, &mouse_py);
+	size_t board_px_max = board_px + CHESS_BOARD_WIDTH;
+	size_t board_py_max = board_py + CHESS_BOARD_WIDTH;
+	bool mouse_over_board = ((mouse_px > board_px) && (mouse_px < board_px_max));
+	mouse_over_board = mouse_over_board && ((mouse_py > board_py) && (mouse_py < board_py_max));
+	if (mouse_over_board) {
+		size_t mouse_board_px = mouse_px - board_px;
+		size_t mouse_board_py = mouse_py - board_py;
+		size_t i = mouse_board_px / CHESS_SQUARE_WIDTH;
+		size_t j = mouse_board_py / CHESS_SQUARE_WIDTH;
+		mouse_square = (j * (size_t)8) + i;
+	}
+
+	static uint16_t hand_piece = CHESS_NULL_PIECE;
+	static size_t hand_piece_index = SIZE_MAX;
+
+	if (ROSE_PressedMouseButton(ROSE_MOUSE_LEFT)) {
+		if (mouse_square != SIZE_MAX) {
+			uint16_t piece = chess_state->grid[mouse_square];
+			if (piece != CHESS_NULL_PIECE) {
+				hand_piece = piece;
+				chess_state->grid[mouse_square] = CHESS_NULL_PIECE;
+				hand_piece_index = mouse_square;
+			}
+		}
+	}
+
+	if (ROSE_ReleasedMouseButton(ROSE_MOUSE_LEFT)) {
+		for (;;) {
+			if (hand_piece == CHESS_NULL_PIECE) {
+				break;
+			}
+
+			if (mouse_square != SIZE_MAX) {
+				chess_state->grid[mouse_square] = hand_piece;
+				hand_piece = CHESS_NULL_PIECE;
+				hand_piece_index = SIZE_MAX;
+				break;
+			}
+			
+			chess_state->grid[hand_piece_index] = hand_piece;
+			hand_piece = CHESS_NULL_PIECE;
+			hand_piece_index = SIZE_MAX;
+			break;
+		}
+	}
+
+	if (hand_piece != CHESS_NULL_PIECE) {
+		size_t sprite_index = hand_piece & 0b0000000000001111;
+		ROSE_Sprite* sprite = chess_pieces[sprite_index];
+		size_t x = mouse_px - (CHESS_SQUARE_WIDTH / 2);
+		size_t y = mouse_py - (CHESS_SQUARE_WIDTH / 2);
+		ROSE_DrawSprite(sprite, x, y, 1.0, ROSE_COLOR_WHITE);
+	}
 }
 
 int main(void) {

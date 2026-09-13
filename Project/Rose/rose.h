@@ -52,9 +52,9 @@ bool ROSE_RevealMouseCursor(void);
 bool ROSE_PressingMouseButton(int);
 bool ROSE_PressedMouseButton(int);
 bool ROSE_ReleasedMouseButton(int);
-void ROSE_GetMousePosition(float*, float*);
-void ROSE_GetMouseVelocity(float*, float*);
-float ROSE_GetMouseScroll(void);
+void ROSE_GetMousePosition(size_t*, size_t*);
+void ROSE_GetMouseVelocity(size_t*, size_t*);
+size_t ROSE_GetMouseScroll(void);
 
 bool ROSE_PressingKeyboardButton(int);
 bool ROSE_PressedKeyboardButton(int);

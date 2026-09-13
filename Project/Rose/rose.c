@@ -993,34 +993,34 @@ bool ROSE_ReleasedMouseButton(int button) {
 	} return ((prev_mouse_state & SDL_BUTTON_MASK(button)) != 0) && ((curr_mouse_state & SDL_BUTTON_MASK(button)) == 0);
 }
 
-void ROSE_GetMousePosition(float* px, float* py) {
+void ROSE_GetMousePosition(size_t* px, size_t* py) {
 	if (!rose) {
 		const char* message = "ROSE has not been Initialized!";
 		fprintf(stderr, "ROSE_GetMousePosition() Failed: %s", message);
 		exit(EXIT_FAILURE);
 	}
 
-	*px = mouse_px;
-	*py = mouse_py;
+	*px = (size_t)mouse_px;
+	*py = (size_t)mouse_py;
 }
 
-void ROSE_GetMouseVelocity(float* vx, float* vy) {
+void ROSE_GetMouseVelocity(size_t* vx, size_t* vy) {
 	if (!rose) {
 		const char* message = "ROSE has not been Initialized!";
 		fprintf(stderr, "ROSE_GetMouseVelocity() Failed: %s", message);
 		exit(EXIT_FAILURE);
 	}
 
-	*vx = mouse_vx;
-	*vy = mouse_vy;
+	*vx = (size_t)mouse_vx;
+	*vy = (size_t)mouse_vy;
 }
 
-float ROSE_GetMouseScroll(void) {
+size_t ROSE_GetMouseScroll(void) {
 	if (!rose) {
 		const char* message = "ROSE has not been Initialized!";
 		fprintf(stderr, "ROSE_GetMouseScroll() Failed: %s", message);
 		exit(EXIT_FAILURE);
-	} return mouse_scroll;
+	} return (size_t)mouse_scroll;
 }
 
 /*
