@@ -43,7 +43,29 @@ ROSE_Sprite* board_sprite = NULL;
 ROSE_Sprite* highlight_sprite = NULL;
 ROSE_Sprite* chess_pieces[15] = { NULL };
 
+ROSE_Text* rank_labels[8] = { NULL };
+ROSE_Text* file_labels[8] = { NULL };
+
 static void CHESS_InitAssets(void) {
+
+	rank_labels[0] = ROSE_CreateText("8");
+	rank_labels[1] = ROSE_CreateText("6");
+	rank_labels[2] = ROSE_CreateText("7");
+	rank_labels[3] = ROSE_CreateText("5");
+	rank_labels[4] = ROSE_CreateText("4");
+	rank_labels[5] = ROSE_CreateText("3");
+	rank_labels[6] = ROSE_CreateText("2");
+	rank_labels[7] = ROSE_CreateText("1");
+
+	file_labels[0] = ROSE_CreateText("A");
+	file_labels[1] = ROSE_CreateText("B");
+	file_labels[2] = ROSE_CreateText("C");
+	file_labels[3] = ROSE_CreateText("D");
+	file_labels[4] = ROSE_CreateText("E");
+	file_labels[5] = ROSE_CreateText("F");
+	file_labels[6] = ROSE_CreateText("G");
+	file_labels[7] = ROSE_CreateText("H");
+
 	board_image     = ROSE_LoadPNGImage("Textures/Board.png");
 	highlight_image = ROSE_LoadPNGImage("Textures/Highlight.png");
 
@@ -116,25 +138,25 @@ static void CHESS_CleanUpAssets(void) {
 	ROSE_DestroySprite(board_sprite);
 	ROSE_DestroySprite(highlight_sprite);
 
-	for (intmax index = 0; index < 15; index++) {
-		ROSE_Sprite* sprite = chess_pieces[index];
+	for (intmax i = 0; i < 15; i++) {
+		ROSE_Sprite* sprite = chess_pieces[i];
 		if (sprite) { ROSE_DestroySprite(sprite); };
+	}
+
+	for (intmax i = 0; i < 8; i++) {
+		ROSE_DestroyText(rank_labels[i]);
+		ROSE_DestroyText(file_labels[i]);
 	}
 }
 
-typedef enum CHESS_Player {
-	CHESS_WHITE,
-	CHESS_BLACK,
-} CHESS_Player;
-
 typedef struct CHESS_ChessBoardState {
 	uint8_t grid[64];
-	CHESS_Player turn;
+	bool turn; // TRUE = WHITE TO PLAY
 } CHESS_ChessBoardState;
 
 static CHESS_ChessBoardState CHESS_InitChessBoard(void) {
 	CHESS_ChessBoardState state = { 0 };
-	state.turn = CHESS_WHITE;
+	state.turn = true;
 
 	for (intmax index = 0; index < 64; index++) {
 		state.grid[index] = CHESS_NULL_PIECE;
@@ -209,19 +231,105 @@ static intmax* CHESS_EnumerateLegalMoves(CHESS_ChessBoardState* state) {
 					num_moves++;
 				}
 			}
+			if (start_i > 0) {
+				for (intmax end_i = start_i - 1; end_i >= 0; end_i--) {
+					intmax end_square = (start_j * 8) + end_i;
+					moves[num_moves] = end_square;
+					num_moves++;
+				}
+			}
+			if (start_j > 0) {
+				for (intmax end_j = start_j - 1; end_j >= 0; end_j--) {
+					intmax end_square = start_i + (end_j * 8);
+					moves[num_moves] = end_square;
+					num_moves++;
+				}
+			}
+			if (start_j < 8) {
+				for (intmax end_j = start_j + 1; end_j < 8; end_j++) {
+					intmax end_square = start_i + (end_j * 8);
+					moves[num_moves] = end_square;
+					num_moves++;
+				}
+			}
+		}
+		if (bishopy) {
+			if ((start_i < 7) && (start_j < 7)) {
+				intmax end_i = start_i + 1;
+				intmax end_j = start_j + 1;
+				for (;;) {
+					intmax end_square = end_i + (end_j * 8);
+					moves[num_moves] = end_square;
+					num_moves++;
+					end_i += 1;
+					end_j += 1;
+					if (end_i == 8) { break; }
+					if (end_j == 8) { break; }
+				}
+			}
+			if ((start_i > 0) && (start_j > 0)) {
+				intmax end_i = start_i - 1;
+				intmax end_j = start_j - 1;
+				for (;;) {
+					intmax end_square = end_i + (end_j * 8);
+					moves[num_moves] = end_square;
+					num_moves++;
+					end_i -= 1;
+					end_j -= 1;
+					if (end_i == -1) { break; }
+					if (end_j == -1) { break; }
+				}
+			}
+
+
+			if ((start_i < 7) && (start_j > 0)) {
+				intmax end_i = start_i + 1;
+				intmax end_j = start_j - 1;
+				for (;;) {
+					intmax end_square = end_i + (end_j * 8);
+					moves[num_moves] = end_square;
+					num_moves++;
+					end_i += 1;
+					end_j -= 1;
+					if (end_i == 8) { break; }
+					if (end_j == -1) { break; }
+				}
+			}
+			if ((start_i > 0) && (start_j < 7)) {
+				intmax end_i = start_i - 1;
+				intmax end_j = start_j + 1;
+				for (;;) {
+					intmax end_square = end_i + (end_j * 8);
+					moves[num_moves] = end_square;
+					num_moves++;
+					end_i -= 1;
+					end_j += 1;
+					if (end_i == -1) { break; }
+					if (end_j == 8) { break; }
+				}
+			}
 		}
 	}
 
 	return legal_moves;
 }
 
-static void CHESS_RenderChessBoard(CHESS_ChessBoardState* state, intmax* legal_moves) {
+static bool CHESS_RenderChessBoard(CHESS_ChessBoardState* state, intmax* legal_moves) {
 	intmax screen_width, screen_height;
 	ROSE_GetScreenSize(&screen_width, &screen_height);
 
 	intmax board_px = (screen_width - CHESS_BOARD_WIDTH) / 2;
 	intmax board_py = (screen_height - CHESS_BOARD_WIDTH) / 2;
 	ROSE_DrawSprite(board_sprite, board_px, board_py, 1.0, ROSE_COLOR_WHITE);
+
+	for (intmax i = 0; i < 8; i++) {
+		intmax rx = board_px - 20;
+		intmax ry = board_py + (CHESS_SQUARE_WIDTH * i) + 19;
+		intmax fx = board_px + (CHESS_SQUARE_WIDTH * i) + 23;
+		intmax fy = board_py + CHESS_BOARD_WIDTH + 5;
+		ROSE_DrawText(rank_labels[i], rx, ry, 2.0, ROSE_COLOR_WHITE);
+		ROSE_DrawText(file_labels[i], fx, fy, 2.0, ROSE_COLOR_WHITE);
+	}
 
 	for (intmax index = 0; index < 64; index++) {
 		uint8_t piece = state->grid[index];
@@ -262,6 +370,8 @@ static void CHESS_RenderChessBoard(CHESS_ChessBoardState* state, intmax* legal_m
 		}
 	}
 
+	bool new_board_position = false;
+
 	if (ROSE_ReleasedMouseButton(ROSE_MOUSE_LEFT)) {
 		for (;;) {
 			if (hand_piece == CHESS_NULL_PIECE) {
@@ -272,6 +382,7 @@ static void CHESS_RenderChessBoard(CHESS_ChessBoardState* state, intmax* legal_m
 				state->grid[mouse_square] = hand_piece;
 				hand_piece = CHESS_NULL_PIECE;
 				hand_square = INT64_MAX;
+				new_board_position = true;
 				break;
 			}
 			
@@ -283,7 +394,6 @@ static void CHESS_RenderChessBoard(CHESS_ChessBoardState* state, intmax* legal_m
 	}
 
 	if (hand_square != INT64_MAX) {
-
 		intmax* moves = &legal_moves[hand_square * 64];
 		intmax move_index = 0;
 		for (;;) {
@@ -301,24 +411,29 @@ static void CHESS_RenderChessBoard(CHESS_ChessBoardState* state, intmax* legal_m
 		intmax y = mouse_py - (CHESS_SQUARE_WIDTH / 2);
 		ROSE_DrawSprite(sprite, x, y, 1.0, ROSE_COLOR_WHITE);
 	}
+
+	return new_board_position;
 }
 
 int main(void) {
-	ROSE_Init("Chess Engine", CHESS_BOARD_WIDTH, CHESS_BOARD_WIDTH, true);
+	ROSE_Init("Chess Engine", 1200, 700, true);
 	ROSE_SetMinScreenSize(CHESS_BOARD_WIDTH, CHESS_BOARD_WIDTH);
 	ROSE_ToggleVSync(true);
 
 	CHESS_InitAssets();
 	CHESS_ChessBoardState chess_state = CHESS_InitChessBoard();
+	intmax* legal_moves = CHESS_EnumerateLegalMoves(&chess_state);
 
 	while (ROSE_PollEvents()) {
 		ROSE_ClearScreen(ROSE_COLOR_BLACK);
-		intmax* legal_moves = CHESS_EnumerateLegalMoves(&chess_state);
-		CHESS_RenderChessBoard(&chess_state, legal_moves);
-		free(legal_moves);
-		ROSE_SwapBuffers();
+		if (CHESS_RenderChessBoard(&chess_state, legal_moves)) {
+			free(legal_moves);
+			legal_moves = NULL;
+			legal_moves = CHESS_EnumerateLegalMoves(&chess_state);
+		} ROSE_SwapBuffers();
 	}
 
+	if (legal_moves) { free(legal_moves); }
 	CHESS_CleanUpAssets();
 	ROSE_Quit();
 	return EXIT_SUCCESS;
