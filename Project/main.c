@@ -38,33 +38,21 @@
 
 ROSE_Image* board_image = NULL;
 ROSE_Image* highlight_image = NULL;
-
 ROSE_Sprite* board_sprite = NULL;
 ROSE_Sprite* highlight_sprite = NULL;
 ROSE_Sprite* chess_pieces[15] = { NULL };
-
-ROSE_Text* rank_labels[8] = { NULL };
-ROSE_Text* file_labels[8] = { NULL };
+ROSE_Text* axis_labels[8] = { NULL };
 
 static void CHESS_InitAssets(void) {
 
-	rank_labels[0] = ROSE_CreateText("8");
-	rank_labels[1] = ROSE_CreateText("6");
-	rank_labels[2] = ROSE_CreateText("7");
-	rank_labels[3] = ROSE_CreateText("5");
-	rank_labels[4] = ROSE_CreateText("4");
-	rank_labels[5] = ROSE_CreateText("3");
-	rank_labels[6] = ROSE_CreateText("2");
-	rank_labels[7] = ROSE_CreateText("1");
-
-	file_labels[0] = ROSE_CreateText("A");
-	file_labels[1] = ROSE_CreateText("B");
-	file_labels[2] = ROSE_CreateText("C");
-	file_labels[3] = ROSE_CreateText("D");
-	file_labels[4] = ROSE_CreateText("E");
-	file_labels[5] = ROSE_CreateText("F");
-	file_labels[6] = ROSE_CreateText("G");
-	file_labels[7] = ROSE_CreateText("H");
+	axis_labels[0] = ROSE_CreateText("0");
+	axis_labels[1] = ROSE_CreateText("1");
+	axis_labels[2] = ROSE_CreateText("2");
+	axis_labels[3] = ROSE_CreateText("3");
+	axis_labels[4] = ROSE_CreateText("4");
+	axis_labels[5] = ROSE_CreateText("5");
+	axis_labels[6] = ROSE_CreateText("6");
+	axis_labels[7] = ROSE_CreateText("7");
 
 	board_image     = ROSE_LoadPNGImage("Textures/Board.png");
 	highlight_image = ROSE_LoadPNGImage("Textures/Highlight.png");
@@ -144,8 +132,7 @@ static void CHESS_CleanUpAssets(void) {
 	}
 
 	for (intmax i = 0; i < 8; i++) {
-		ROSE_DestroyText(rank_labels[i]);
-		ROSE_DestroyText(file_labels[i]);
+		ROSE_DestroyText(axis_labels[i]);
 	}
 }
 
@@ -221,6 +208,7 @@ static intmax* CHESS_EnumerateLegalMoves(CHESS_ChessBoardState* state) {
 		uint8_t this_type = this_piece & CHESS_TYPE_MASK;
 		bool rooky = (this_type == CHESS_ROOK) || (this_type == CHESS_QUEEN);
 		bool bishopy = (this_type == CHESS_BISHOP) || (this_type == CHESS_QUEEN);
+		bool horsey = (this_type == CHESS_HORSE);
 		intmax start_i = start_square % 8;
 		intmax start_j = start_square / 8;
 		if (rooky) {
@@ -388,6 +376,33 @@ static intmax* CHESS_EnumerateLegalMoves(CHESS_ChessBoardState* state) {
 				}
 			}
 		}
+		if (horsey) {
+			intmax end_squares[8] = {
+				((start_i > 0) && (start_j > 1)) ? (start_square + 15) : (INT64_MAX),
+				((start_i < 7) && (start_j > 1)) ? (start_square + 17) : (INT64_MAX),
+				((start_i > 1) && (start_j > 0)) ? (start_square + 6)  : (INT64_MAX),
+				((start_i < 6) && (start_j > 0)) ? (start_square + 10) : (INT64_MAX),
+				(false) ? (start_square - 6)  : (INT64_MAX),
+				(false) ? (start_square - 10) : (INT64_MAX),
+				(false) ? (start_square - 15) : (INT64_MAX),
+				(false) ? (start_square - 17) : (INT64_MAX),
+			};
+			for (intmax i = 0; i < 8; i++) {
+				intmax end_square = end_squares[i];
+				if ((end_square < 0) || (end_square >= 64)) { continue; }
+				uint8_t other_piece = state->grid[end_square];
+				if (other_piece == CHESS_NULL_PIECE) {
+					moves[num_moves] = end_square;
+					num_moves++;
+					continue;
+				}
+				if ((other_piece & CHESS_PLAYER_MASK) != (this_piece & CHESS_PLAYER_MASK)) {
+					moves[num_moves] = end_square;
+					num_moves++;
+					continue;
+				}
+			}
+		}
 	}
 
 	return legal_moves;
@@ -402,12 +417,12 @@ static bool CHESS_RenderChessBoard(CHESS_ChessBoardState* state, intmax* legal_m
 	ROSE_DrawSprite(board_sprite, board_px, board_py, 1.0, ROSE_COLOR_WHITE);
 
 	for (intmax i = 0; i < 8; i++) {
-		intmax rx = board_px - 20;
-		intmax ry = board_py + (CHESS_SQUARE_WIDTH * i) + 19;
-		intmax fx = board_px + (CHESS_SQUARE_WIDTH * i) + 23;
-		intmax fy = board_py + CHESS_BOARD_WIDTH + 5;
-		ROSE_DrawText(rank_labels[i], rx, ry, 2.0, ROSE_COLOR_WHITE);
-		ROSE_DrawText(file_labels[i], fx, fy, 2.0, ROSE_COLOR_WHITE);
+		intmax ix = board_px + (CHESS_SQUARE_WIDTH * i) + 23;
+		intmax iy = board_py - 26;
+		intmax jx = board_px - 20;
+		intmax jy = board_py + (CHESS_SQUARE_WIDTH * i) + 19;
+		ROSE_DrawText(axis_labels[i], ix, iy, 2.0, ROSE_COLOR_WHITE);
+		ROSE_DrawText(axis_labels[i], jx, jy, 2.0, ROSE_COLOR_WHITE);
 	}
 
 	for (intmax index = 0; index < 64; index++) {
@@ -491,12 +506,35 @@ static bool CHESS_RenderChessBoard(CHESS_ChessBoardState* state, intmax* legal_m
 		ROSE_DrawSprite(sprite, x, y, 1.0, ROSE_COLOR_WHITE);
 	}
 
+	{ // Debug View
+		if (mouse_square != INT64_MAX) {
+			const char pos_str[6] = { '(', (char)((mouse_square % 8) - 47), ',', (char)((mouse_square / 8) - 47), ')', '\0' };
+			uint8_t mouse_piece = state->grid[mouse_square];
+			const char piece_byte_str[9] = {
+				(char)(((mouse_piece >> 7) & 0b00000001) - 47),
+				(char)(((mouse_piece >> 6) & 0b00000001) - 47),
+				(char)(((mouse_piece >> 5) & 0b00000001) - 47),
+				(char)(((mouse_piece >> 4) & 0b00000001) - 47),
+				(char)(((mouse_piece >> 3) & 0b00000001) - 47),
+				(char)(((mouse_piece >> 2) & 0b00000001) - 47),
+				(char)(((mouse_piece >> 1) & 0b00000001) - 47),
+				(char)(((mouse_piece >> 0) & 0b00000001) - 47), '\0',
+			};
+			ROSE_Text* hover_text = ROSE_CreateText(pos_str);
+			ROSE_Text* piece_byte_text = ROSE_CreateText(piece_byte_str);
+			ROSE_DrawText(hover_text, board_px_max + 10, board_py + 13, 3.0, ROSE_COLOR_RED);
+			ROSE_DrawText(piece_byte_text, board_px_max + 10, board_py + 50, 3.0, ROSE_COLOR_RED);
+			ROSE_DestroyText(hover_text);
+			ROSE_DestroyText(piece_byte_text);
+		}
+	}
+
 	return new_board_position;
 }
 
 int main(void) {
 	ROSE_Init("Chess Engine", 1200, 700, true);
-	ROSE_SetMinScreenSize(CHESS_BOARD_WIDTH, CHESS_BOARD_WIDTH);
+	ROSE_SetMinScreenSize(CHESS_BOARD_WIDTH + 70, CHESS_BOARD_WIDTH + 70);
 	ROSE_ToggleVSync(true);
 
 	CHESS_InitAssets();
