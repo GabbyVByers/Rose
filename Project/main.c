@@ -378,14 +378,14 @@ static intmax* CHESS_EnumerateLegalMoves(CHESS_ChessBoardState* state) {
 		}
 		if (horsey) {
 			intmax end_squares[8] = {
-				((start_i > 0) && (start_j > 1)) ? (start_square + 15) : (INT64_MAX),
-				((start_i < 7) && (start_j > 1)) ? (start_square + 17) : (INT64_MAX),
-				((start_i > 1) && (start_j > 0)) ? (start_square + 6)  : (INT64_MAX),
-				((start_i < 6) && (start_j > 0)) ? (start_square + 10) : (INT64_MAX),
-				(false) ? (start_square - 6)  : (INT64_MAX),
-				(false) ? (start_square - 10) : (INT64_MAX),
-				(false) ? (start_square - 15) : (INT64_MAX),
-				(false) ? (start_square - 17) : (INT64_MAX),
+				((start_i >= 1) && (start_j <= 5)) ? (start_square + 15) : (INT64_MAX),
+				((start_i <= 6) && (start_j <= 5)) ? (start_square + 17) : (INT64_MAX),
+				((start_i >= 2) && (start_j <= 6)) ? (start_square + 6) : (INT64_MAX),
+				((start_i <= 5) && (start_j <= 6)) ? (start_square + 10) : (INT64_MAX),
+				((start_i <= 5) && (start_j >= 1)) ? (start_square - 6) : (INT64_MAX),
+				((start_i >= 2) && (start_j >= 1)) ? (start_square - 10) : (INT64_MAX),
+				((start_i <= 6) && (start_j >= 2)) ? (start_square - 15) : (INT64_MAX),
+				((start_i >= 1) && (start_j >= 2)) ? (start_square - 17) : (INT64_MAX),
 			};
 			for (intmax i = 0; i < 8; i++) {
 				intmax end_square = end_squares[i];
@@ -473,6 +473,7 @@ static bool CHESS_RenderChessBoard(CHESS_ChessBoardState* state, intmax* legal_m
 			}
 
 			if (mouse_square != INT64_MAX) {
+				if (mouse_square != hand_square) { hand_piece = (hand_piece | CHESS_MOVED_MASK); }
 				state->grid[mouse_square] = hand_piece;
 				hand_piece = CHESS_NULL_PIECE;
 				hand_square = INT64_MAX;
